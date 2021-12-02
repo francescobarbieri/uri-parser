@@ -34,3 +34,21 @@ verifica_identificatori([X | Xs]) :-
 	X \= '@', 
 	X \= ':',
 	verifica_identificatore(Xs).
+
+verifica_scheme(X) :-
+    length(X, 1),
+    nth0(0, X, Y),
+    Y \= '/', 
+    Y \= '?', 
+    Y \= '#', 
+    Y \= '@', 
+    Y \= ':',
+    !.
+
+verifica_scheme([X | Xs]) :-
+    X \= '/', 
+    X \= '?', 
+    X \= '#', 
+    X \= '@', 
+    X \= ':',
+    verifica_scheme(Xs).
