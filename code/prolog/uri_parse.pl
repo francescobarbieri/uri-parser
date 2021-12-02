@@ -54,3 +54,24 @@ splitList([L|Ls], A, [L|Xs], R):-
 	L\==A,
 	splitList(Ls, A, Xs, R),
 	!.
+
+%TEST
+%Test presi da https://datatracker.ietf.org/doc/html/rfc3986#section-1.1.2
+%sezione 1.1.2
+%?- uri_parse("ftp://ftp.is.co.za/rfc/rfc1808.txt", URI).
+%?- uri_parse("http://www.ietf.org/rfc/rfc2396.txt", URI).
+%?- uri_parse("ldap://[2001:db8::7]/c=GB?objectClass?one", URI).
+%?- uri_parse("mailto:John.Doe@example.com", URI).   
+%?- uri_parse("news:comp.infosystems.www.servers.unix", URI).
+%?- uri_parse("tel:+1-816-555-1212", URI).
+%?- uri_parse("telnet://192.0.2.16:80/", URI).
+%?- uri_parse("urn:oasis:names:specification:docbook:dtd:xml:4.1.2", URI).
+%
+%Test aggiuntivi:
+%?- uri_parse("http://disco.unimib.it", URI).
+%?- uri_parse("http://disco.unimib.it",
+%				uri(https, _, _, _, _, _, _)).
+%?- uri_parse("http://disco.unimib.it",
+%				uri(_, _, Host, _, _, _, _)).
+%?- uri_parse("d?:/", URI).
+%?- uri_parse("d#:/", URI).
