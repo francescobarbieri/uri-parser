@@ -6,7 +6,7 @@ uri_parse (URIString, URI) :-
     codeListToAtomList(URICodeList, URIList),
 
     %se trovo un ":" nella lista di char non faccio backtracking dato che è l'elemento che mi indica la fine dello scheme
-    member (':', URIList),
+    member(':', URIList),
     !.
 
     URI = uri(Scheme, Userinfo, Host, Port, Path, Query, Fragment).
@@ -33,22 +33,25 @@ verifica_identificatori([X | Xs]) :-
 	X \= '#', 
 	X \= '@', 
 	X \= ':',
-	verifica_identificatore(Xs).
+	verifica_identificatori(Xs).
 
-verifica_scheme(X) :-
-    length(X, 1),
-    nth0(0, X, Y),
-    Y \= '/', 
-    Y \= '?', 
-    Y \= '#', 
-    Y \= '@', 
+verifica_identificatori_host(X) :- 
+	length(X, 1),
+	nth0(0, X, Y),
+	Y \= '.', 
+	Y \= '/', 
+	Y \= '?', 
+	Y \= '#', 
+	Y \= '@',
     Y \= ':',
-    !.
+	!.
+verifica_identificatori_host([X | Xs]) :-
+	Y \= '.', 
+	Y \= '/', 
+	Y \= '?', 
+	Y \= '#', 
+	Y \= '@',
+    Y \= ':',
+	verifica_identificatori_host(Xs).
 
-verifica_scheme([X | Xs]) :-
-    X \= '/', 
-    X \= '?', 
-    X \= '#', 
-    X \= '@', 
-    X \= ':',
-    verifica_scheme(Xs).
+verifica_scheme(X) :- verifica_identificatori(X).
