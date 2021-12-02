@@ -16,3 +16,21 @@ codeListToAtomList([], []) :- !.
 codeListToAtomList([X | Xs], [Y | Ys]) :- 
 	char_code(Y, X), 
 	codeListToAtomList(Xs, Ys).
+
+%funzione che data una stringa, ritorna true se trova un identificatore
+verifica_identificatori(X) :- 
+	length(X, 1),  %True se la lista X contiene 1 elemento
+	nth0(0, X, Y), %True se l'elemento Y alla posizione 0 della lista X è uno sei deguenti caratteri
+	Y \= '/', 
+	Y \= '?', 
+	Y \= '#', 
+	Y \= '@', 
+	Y \= ':',
+	!.
+verifica_identificatori([X | Xs]) :-
+	X \= '/', 
+	X \= '?', 
+	X \= '#', 
+	X \= '@', 
+	X \= ':',
+	verifica_identificatore(Xs).
