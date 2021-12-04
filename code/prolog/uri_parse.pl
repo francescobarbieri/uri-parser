@@ -28,6 +28,7 @@
 % 1) Gestire quando non è presente l'authority
 % 2) Gestire le porte di default
 % 3) E boh controllare i caratteri che non so se ho tenuto conto di tutti
+% 4) Aggiungere controllo IP sul dominio
 
 
 uri_parse(URIString, URI) :- 
