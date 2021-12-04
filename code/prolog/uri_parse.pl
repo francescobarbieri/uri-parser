@@ -1,6 +1,37 @@
-uri_parse(URIString, URI) :-
-    %conversione da stringa a lista di codici
-    string_to_list(URIString, URICodeList),
+% Allora boys, in breve cosa fa:
+% Presa una stringa "https://user@info.com:8080/altro"
+% 1) Splitta la lista dove ci sono i :
+%	[https] [//user@info.com:8080/altro]
+% 2) Controlla se è presente l'authority con i // e li rimuove
+%	Se presente allora AuthorityPresence = 1, altrimenti 0
+%	[https] [user@info.com:8080/altro]
+% 	NB: Il caso in cui non c'è l'authority è ancora da gestire, infatti se non c'è una authority correttamente
+%	formattata ritorna false
+% 3) Aggiunge uno / alla fine della stringa per il caso in cui sia https://domain.com per riconoscere l'authority
+%	Questo passaggio sarà da gestire nel momento in cui si fa il path, o trovare un metodo per aggiungere lo /
+%	finale SOLO SE non presente nell'authority, ma per determinare l'authority uso lo / quindi è un po' un casino ma si può fare,
+%	bisogna solo trovare un metodo
+% 4) Divide l'authority in presenza dello /
+%	[https] [user@info.com:8080] [altro]
+% 5) Lavora sull'authority, individua se sono presenti userinfo e port
+% 	Setta di conseguenza PortPresence e UserinfoPresence (come per AuthorityPresence)
+% 6) Divide di conseguenza la porta in presenza dei :
+%	[https] [user@info.com] [8080] [altro]
+%	Se PortPresence == 0 allora Port = []
+% 7) Divide di conseguenza lo userinfo in presenza di @
+%	[https] [user] [info.com] [8080] [altro]
+% 	Se UserinfoPresence == 0 allora Userinfo = []
+% 8) E niente poi stampa tutto come era per lo scheme
+%
+%================================ 
+% Prossimi step per terminare la parte dell'authority:
+% 1) Gestire quando non è presente l'authority
+% 2) Gestire le porte di default
+% 3) E boh controllare i caratteri che non so se ho tenuto conto di tutti
+
+
+uri_parse(URIString, URI) :- 
+	string_to_list(URIString, URICodeList),
 
     %conversione da lista di codici a lista leggibile
     codeListToAtomList(URICodeList, URIList),
@@ -9,28 +40,138 @@ uri_parse(URIString, URI) :-
     member(':', URIList),
     !,
 
-	%divido la stringa URIList in due parti con il predicato splitString, spiegato dopo. Questo per identificare lo scheme e "separarlo" dal resto della stringa
 	splitList(URIList, :, Scheme, Sottostringa),
 
-	%a partire da Scheme genero una stringa SchemeOut da poter stampare a video
-	out_scheme(Scheme, SchemeOut),
+	%append([':'], Sottostringa, Sottostringa1),
+
+	%BooleanAuthority controlla se l'authorithy è presente o meno (1 o 0)
+	presenzaAuthority(Sottostringa, AuthorityPresence),
 	
-    URI = uri(SchemeOut). %, Userinfo, Host, Port, Path, Query, Fragment).
+	%Authority è userinfo + host + port
+	%isolateAuthority(Sottostringa, BooleanAuthority, Z),
+
+	%after è tutto quello dopo l'authority
+	list_append(/, Sottostringa, Sottostringa1),
+
+	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After),
+
+	presenzaPort(Authority, PortPresence, AuthorityPresence),
+	presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence),
+
+	splitPort(Authority, :, TempAuthority, Port, PortPresence),
+	splitHost(TempAuthority, @, Userinfo, Host, UserinfoPresence),
+
+	out_scheme(Scheme, SchemeOut),
+	out_userinfo(Userinfo, UserinfoOut),
+	out_host(Host, HostOut),
+	out_porta(Port, PortaOut),
+
+	%URI = uri(AuthorityPresence, Sottostringa1).
+	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, After).
 
 uri(_, _, _, _, _, _, _).
 
-%genero una stringa SchemeOut da poter stampare a video
+presenzaAuthority(X, Y) :- 
+	nth1(1, X, /),
+	nth1(2, X, /),
+	Y is 1,
+	!.
+
+presenzaAuthority(_, Y) :- 
+	Y is 0.
+
+presenzaPort(Authority, PortPresence, AuthorityPresence) :- 
+	AuthorityPresence == 1,
+	member(:, Authority), !,
+	PortPresence = 1.
+
+presenzaPort(Authority, PortPresence, AuthorityPresence) :- 
+	AuthorityPresence == 1,
+	nonmember(:, Authority), !,
+	PortPresence = 0.
+
+presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :- 
+	AuthorityPresence == 1,
+	member(@, Authority), !,
+	UserinfoPresence = 1.
+
+presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :- 
+	AuthorityPresence == 1,
+	nonmember(@, Authority), !,
+	UserinfoPresence = 0.
+
+nonmember(Arg,[Arg|_]) :-
+	!,
+	fail.
+nonmember(Arg,[_|Tail]) :-
+	!,
+	nonmember(Arg,Tail).
+nonmember(_,[]).
+
+%Il caso in cui no c'è l'authority è ancora da gestire, infatti se non c'è una authority correttamente formattata ritorna false
+isolateAuthority(X, Y, Z) :-
+	Y == 1,
+	removeHead(X, Xfirst),
+	removeHead(Xfirst, Z).
+
+removeHead([_ | Xs], Xs).
+
+splitAuthority(X, Car, BooleanAuthority, Before, After) :-
+	BooleanAuthority == 1,
+	removeHead(X, Xfirst),
+	removeHead(Xfirst, Z),
+	splitList(Z, Car, Before, After), !.
+
+%Operazioni sull'authority
+
+splitPort(String, Car, Before, After, PortPresence) :-
+	PortPresence == 1,
+	splitList(String, Car, Before, After), !.
+
+splitPort(String, Car, Before, After, PortPresence) :-
+	PortPresence == 0,
+	Before = String,
+	After = [], !.
+
+splitHost(String, Car, Before, After, UserinfoPresence) :-
+	UserinfoPresence == 1,
+	splitList(String, Car, Before, After), !.
+
+splitHost(String, Car, Before, After, UserinfoPresence) :-
+	UserinfoPresence == 0,
+	Before = [],
+	After = String, !.
+
+%Out code
+out_porta([], SottostringaOut) :- 
+	SottostringaOut = [], !.
+
+out_porta(Sottostringa, SottostringaOut) :- 
+	isDigit(Sottostringa), 
+	string_to_atom(Sottostringa, SottostringaOut).
+
 out_scheme(Scheme, SchemeOut) :- 
 	verifica_identificatori(Scheme),
 	string_to_atom(Scheme, SchemeOut).
 
-%convertitore da codici dei caratteri in caratteri leggibili
+out_host(Host, HostOut) :- 
+	verifica_identificatori(Host),
+	string_to_atom(Host, HostOut).
+
+out_userinfo(Userinfo, UserinfoOut) :-
+	Userinfo \= [],
+	string_to_atom(Userinfo, UserinfoOut).
+
+out_userinfo([], UserinfoOut) :- 
+	UserinfoOut = [], !.
+
+% Fuffa
+
 codeListToAtomList([], []) :- !.
 codeListToAtomList([X | Xs], [Y | Ys]) :- 
 	char_code(Y, X), 
 	codeListToAtomList(Xs, Ys).
 
-%predicato che data una stringa, ritorna true se trova un identificatore
 verifica_identificatori(X) :- 
 	length(X, 1),  %True se la lista X contiene 1 elemento
 	nth0(0, X, Y), %True se l'elemento Y alla posizione 0 della lista X è uno sei deguenti caratteri
@@ -48,12 +189,38 @@ verifica_identificatori([X | Xs]) :-
 	X \= ':',
 	verifica_identificatori(Xs).
 
-%predicato splitList, per dividere una stringa data in una parte prima e dopo un carattere dato
+
 splitList([A|Ls], A, [], Ls) :- !.
 splitList([L|Ls], A, [L|Xs], R):- 
 	L\==A,
 	splitList(Ls, A, Xs, R),
 	!.
+
+list_append(X,[ ],[X]) :- !.
+list_append(X,[H|T],[H|Z]) :-
+	list_append(X,T,Z), !.    
+
+%================
+
+isDigit([C | Cs]) :-
+	digit(C),
+	isDigit(Cs),
+	!.
+
+isDigit([C]) :-
+	digit(C),
+	!.
+
+digit('1').
+digit('2').
+digit('3').
+digit('4').
+digit('5').
+digit('6').
+digit('7').
+digit('8').
+digit('9').
+digit('0').
 
 %TEST
 %Test presi da https://datatracker.ietf.org/doc/html/rfc3986#section-1.1.2
