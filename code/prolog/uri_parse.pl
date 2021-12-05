@@ -149,7 +149,7 @@ out_porta([], SottostringaOut) :-
 
 out_porta(Sottostringa, SottostringaOut) :- 
 	isDigit(Sottostringa), 
-	string_to_atom(Sottostringa, SottostringaOut).
+	number_string(SottostringaOut, Sottostringa).
 
 out_scheme(Scheme, SchemeOut) :- 
 	verifica_identificatori(Scheme),
