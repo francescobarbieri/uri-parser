@@ -22,6 +22,8 @@
 %	[https] [user] [info.com] [8080] [altro]
 % 	Se UserinfoPresence == 0 allora Userinfo = []
 % 8) E niente poi stampa tutto come era per lo scheme
+% 8*) Altro = Path + Query(?) + Fragmanetà(#)
+% 9) Isola il fragment da Altro basandosi sull'#
 %
 %================================ 
 % Prossimi step per terminare la parte dell'authority:
@@ -29,7 +31,7 @@
 % 2) Gestire le porte di default
 % 3) E boh controllare i caratteri che non so se ho tenuto conto di tutti
 % 4) Aggiungere controllo IP sul dominio
-
+% 5) Quando è presente l'authority, si deve riconoscere con / , ? , # oppure il '', adesso appenda uno / e riconosce con quello
 
 uri_parse(URIString, URI) :- 
 	string_to_list(URIString, URICodeList),
@@ -57,18 +59,25 @@ uri_parse(URIString, URI) :-
 	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After),
 
 	presenzaPort(Authority, PortPresence, AuthorityPresence),
-	presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence),
+    presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence),
+    presenzaFragment(After, FragmentPresence),
+    presenzaQuery(After, QueryPresence),
 
 	splitPort(Authority, :, TempAuthority, Port, PortPresence),
-	splitHost(TempAuthority, @, Userinfo, Host, UserinfoPresence),
+    splitHost(TempAuthority, @, Userinfo, Host, UserinfoPresence),
+    splitFragment(After, #, OtherString, Fragment, FragmentPresence),
+    splitQuery(OtherString, ?, Path, Query, QueryPresence),
 
 	out_scheme(Scheme, SchemeOut),
 	out_userinfo(Userinfo, UserinfoOut),
 	out_host(Host, HostOut),
-	out_porta(Port, PortaOut),
+    out_porta(Port, PortaOut),
+    out_fragment(Fragment, FragmentOut),
+    out_query(Query, QueryOut),
+    out_Path(Path, PathOut),
 
 	%URI = uri(AuthorityPresence, Sottostringa1).
-	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, After).
+	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, PathOut, QueryOut, FragmentOut).
 
 uri(_, _, _, _, _, _, _).
 
@@ -100,6 +109,25 @@ presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :-
 	AuthorityPresence == 1,
 	nonmember(@, Authority), !,
 	UserinfoPresence = 0.
+
+presenzaFragment(String, PresenzaFragment) :-
+    member(#, String), !,
+    PresenzaFragment = 1.
+
+presenzaFragment(String, PresenzaFragment) :-
+    nonmember(#, String), !,
+    PresenzaFragment = 0.
+
+presenzaFragment([], PresenzaFragment) :-
+    PresenzaFragment = 0, !.
+
+presenzaQuery(Query, QueryPresence) :-
+    member(?, Query), !,
+    QueryPresence = 1.
+
+presenzaQuery(Query, QueryPresence) :-
+    nonmember(?, Query), !,
+    QueryPresence = 0.
 
 nonmember(Arg,[Arg|_]) :-
 	!,
@@ -143,6 +171,24 @@ splitHost(String, Car, Before, After, UserinfoPresence) :-
 	Before = [],
 	After = String, !.
 
+splitFragment(String, Car, Before, After, FragmentPresence) :-
+    FragmentPresence == 0,
+	After = [],
+	Before = String, !.
+
+splitFragment(String, Car, Before, After, FragmentPresence) :-
+	FragmentPresence == 1,
+	splitList(String, Car, Before, After), !.
+
+splitQuery(String, Car, Before, After, QueryPresence) :-
+    QueryPresence == 1,
+    splitList(String, Car, Before, After), !.
+
+splitQuery(String, Car, Before, After, QueryPresence) :-
+    QueryPresence == 0,
+    Before = Path,
+    After = Query, !.
+
 %Out code
 out_porta([], SottostringaOut) :- 
 	SottostringaOut = [], !.
@@ -165,6 +211,27 @@ out_userinfo(Userinfo, UserinfoOut) :-
 
 out_userinfo([], UserinfoOut) :- 
 	UserinfoOut = [], !.
+
+out_fragment(Fragment, FragmentOut) :-
+	Fragment \= [],
+	string_to_atom(Fragment, FragmentOut).
+
+out_fragment([], FragmentOut) :-
+    FragmentOut = [], !.
+
+out_query(Query, QueryOut) :-
+    nonmember(#, Query),
+    string_to_atom(Query, QueryOut), !.
+
+out_query([], QueryOut) :-
+    QueryOut = [], !.
+
+out_Path(Path, PathOut) :-
+    Path \= [],
+	string_to_atom(Path, PathOut), !.
+
+out_Path([], PathOut) :-
+    PathOut = []. 
 
 % Fuffa
 
