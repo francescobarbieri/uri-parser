@@ -30,7 +30,7 @@
 % 1) Gestire quando non è presente l'authority
 % 2) Gestire le porte di default
 % 3) E boh controllare i caratteri che non so se ho tenuto conto di tutti
-% 4) Aggiungere controllo IP sul dominio
+% 4) Controllo sul ".com" del dominio e che host sia valido se non è un ip
 % 5) Quando è presente l'authority, si deve riconoscere con / , ? , # oppure il '', adesso appenda uno / e riconosce con quello
 
 uri_parse(URIString, URI) :- 
@@ -66,7 +66,10 @@ uri_parse(URIString, URI) :-
 	splitPort(Authority, :, TempAuthority, Port, PortPresence),
     splitHost(TempAuthority, @, Userinfo, Host, UserinfoPresence),
     splitFragment(After, #, OtherString, Fragment, FragmentPresence),
-    splitQuery(OtherString, ?, Path, Query, QueryPresence),
+	splitQuery(OtherString, ?, Path, Query, QueryPresence),
+
+	is_IP(Host, BooleanIp),
+    controlloIp(Host, BooleanIp),
 
 	out_scheme(Scheme, SchemeOut),
 	out_userinfo(Userinfo, UserinfoOut),
@@ -128,6 +131,38 @@ presenzaQuery(Query, QueryPresence) :-
 presenzaQuery(Query, QueryPresence) :-
     nonmember(?, Query), !,
     QueryPresence = 0.
+
+digits123([A,B,C|R],R):-
+    digit(A),
+    digit(B),
+    digit(C).
+digits123([A,B|R],R):-
+    digit(A),
+    digit(B).
+digits123([A|R],R):-
+    digit(A).
+
+is_IP(Inp, Boolean):-
+    string_to_list(Inp, URICodeList),
+    codeListToAtomList(URICodeList, In),
+    digits123(In,['.'|R1]),
+    digits123(R1,['.'|R2]),
+    digits123(R2,['.'|R3]),
+    digits123(R3,[]),
+    Boolean = 1, !.
+
+is_IP(_, Boolean) :-
+    Boolean = 0.
+
+controlloIp(List, BooleanIp) :-
+    BooleanIp == 1, 
+	splitList(List, ., Out, Other1),
+	splitList(Other1, ., Out1, Other2),
+	splitList(Other2, ., Out2, Out3),
+	tras(Out), tras(Out1), tras(Out2), tras(Out3), !.
+
+controlloIp(_, BooleanIp) :-
+    BooleanIp == 0.
 
 nonmember(Arg,[Arg|_]) :-
 	!,
@@ -289,6 +324,11 @@ digit('7').
 digit('8').
 digit('9').
 digit('0').
+
+tras(X) :- 
+    number_string(Y,X),
+	Y < 256,
+	Y > 0.
 
 %TEST
 %Test presi da https://datatracker.ietf.org/doc/html/rfc3986#section-1.1.2
