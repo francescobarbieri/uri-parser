@@ -226,7 +226,7 @@ splitQuery(String, Car, Before, After, QueryPresence) :-
 
 %Out code
 out_porta([], SottostringaOut) :- 
-	SottostringaOut = [], !.
+	SottostringaOut = 80, !.
 
 out_porta(Sottostringa, SottostringaOut) :- 
 	isDigit(Sottostringa), 
