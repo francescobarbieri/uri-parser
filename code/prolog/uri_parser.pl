@@ -2,7 +2,7 @@
 % 1) E boh controllare i caratteri che non so se ho tenuto conto di tutti
 % 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è un ip
 % 3) Quando è presente l'authority, si deve riconoscere con / , ? , # oppure il '', adesso appenda uno / e riconosce con quello
-% 4) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE
+% 4) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE CHE L'ANTONIOTTI MI SPARA
 % 5) Zos
 
 uri_parse(URIString, URI) :- 
@@ -78,7 +78,7 @@ presenzaPort(Authority, PortPresence, AuthorityPresence) :-
 	nonmember(:, Authority), !,
 	PortPresence = 0.
 
-presenzaPort(Authority, PortPresence, AuthorityPresence) :- 
+presenzaPort(_, PortPresence, AuthorityPresence) :- 
 	AuthorityPresence == 0,
 	PortPresence = 0.
 
@@ -92,7 +92,7 @@ presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :-
 	nonmember(@, Authority), !,
 	UserinfoPresence = 0.
 
-presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :- 
+presenzaUserinfo(_, UserinfoPresence, AuthorityPresence) :- 
 	AuthorityPresence == 0,
 	UserinfoPresence = 0.
 
@@ -190,7 +190,7 @@ splitAuthority(X, Car, BooleanAuthority, Before, After) :-
 	removeHead(Xfirst, Z),
 	splitList(Z, Car, Before, After), !.
 
-splitAuthority(X, Car, BooleanAuthority, Before, X) :-
+splitAuthority(X, _, BooleanAuthority, Before, X) :-
 	Before = [],
 	BooleanAuthority == 0, !.
 
@@ -200,7 +200,7 @@ splitPort(String, Car, Before, After, PortPresence) :-
 	PortPresence == 1,
 	splitList(String, Car, Before, After), !.
 
-splitPort(String, Car, Before, After, PortPresence) :-
+splitPort(String, _, Before, After, PortPresence) :-
 	PortPresence == 0,
 	Before = String,
 	After = [], !.
@@ -209,14 +209,14 @@ splitHost(String, Car, Before, After, UserinfoPresence) :-
 	UserinfoPresence == 1,
 	splitList(String, Car, Before, After), !.
 
-splitHost(String, Car, Before, After, UserinfoPresence) :-
+splitHost(String, _, Before, After, UserinfoPresence) :-
 	UserinfoPresence == 0,
 	Before = [],
 	After = String, !.
 
-splitHost([], Car, Before, After, UserinfoPresence) :- !.
+splitHost([], _, _, _, _) :- !.
 
-splitFragment(String, Car, Before, After, FragmentPresence) :-
+splitFragment(String, _, Before, After, FragmentPresence) :-
     FragmentPresence == 0,
 	After = [],
 	Before = String, !.
@@ -230,7 +230,7 @@ splitQuery(String, Car, Before, After, QueryPresence, Boolean) :-
 	Boolean == 0,
     splitList(String, Car, Before, After), !.
 
-splitQuery(String, Car, Before, After, QueryPresence, Boolean) :-
+splitQuery(String, _, Before, After, QueryPresence, Boolean) :-
     QueryPresence == 0,
 	Boolean == 0,
     Before = String,
@@ -250,25 +250,25 @@ mailto(List, Out, Out2, Boolean) :-
 	member(@, List),
 	splitList(List, @, Out, Out2), !.
 
-mailto(List, Out, Out2, _) :- !.
+mailto(_, _, _, _) :- !.
 
 news(List, Out, Boolean) :-
 	Boolean == 2,
 	Out = List, !.
 
-news(List, Out, _) :- !.
+news(_, _, _) :- !.
 
 tel(List, Out, Boolean) :-
 	Boolean == 3,
 	Out = List, !.
 
-tel(List, Out, _) :- !.
+tel(_, _, _) :- !.
 
 fax(List, Out, Boolean) :-
 	Boolean == 4,
 	Out = List, !.
 
-fax(List, Out, _) :- !.
+fax(_, _, _) :- !.
 
 
 %Out code
