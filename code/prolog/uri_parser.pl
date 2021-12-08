@@ -27,11 +27,9 @@
 %
 %================================ 
 % Prossimi step per terminare la parte dell'authority:
-% 1) Gestire quando non è presente l'authority
-% 2) Gestire le porte di default
-% 3) E boh controllare i caratteri che non so se ho tenuto conto di tutti
-% 4) Controllo sul ".com" del dominio e che host sia valido se non è un ip
-% 5) Quando è presente l'authority, si deve riconoscere con / , ? , # oppure il '', adesso appenda uno / e riconosce con quello
+% 1) E boh controllare i caratteri che non so se ho tenuto conto di tutti
+% 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è un ip
+% 3) Quando è presente l'authority, si deve riconoscere con / , ? , # oppure il '', adesso appenda uno / e riconosce con quello
 
 uri_parse(URIString, URI) :- 
 	string_to_list(URIString, URICodeList),
@@ -44,16 +42,13 @@ uri_parse(URIString, URI) :-
     !,
 
 	splitList(URIList, :, Scheme, Sottostringa),
-
-	%append([':'], Sottostringa, Sottostringa1),
-
-	%BooleanAuthority controlla se l'authorithy è presente o meno (1 o 0)
 	presenzaAuthority(Sottostringa, AuthorityPresence),
-	
-	%Authority è userinfo + host + port
-	%isolateAuthority(Sottostringa, BooleanAuthority, Z),
 
-	%after è tutto quello dopo l'authority
+	isMailto(Scheme, BooleanMailto),
+	isNews(Scheme, BooleanNews),
+	isTelfax(Scheme, BooleanTelfax),
+	isZos(Scheme, BooleanZos),
+	
 	list_append(/, Sottostringa, Sottostringa1),
 
 	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After),
@@ -79,7 +74,7 @@ uri_parse(URIString, URI) :-
     out_query(Query, QueryOut),
     out_Path(Path, PathOut),
 
-	%URI = uri(AuthorityPresence, Sottostringa1).
+	%URI = uri(Scheme, Userinfo, Host, Port, Path, Query, Fragment).
 	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, PathOut, QueryOut, FragmentOut).
 
 uri(_, _, _, _, _, _, _).
@@ -103,6 +98,10 @@ presenzaPort(Authority, PortPresence, AuthorityPresence) :-
 	nonmember(:, Authority), !,
 	PortPresence = 0.
 
+presenzaPort(Authority, PortPresence, AuthorityPresence) :- 
+	AuthorityPresence == 0,
+	PortPresence = 0.
+
 presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :- 
 	AuthorityPresence == 1,
 	member(@, Authority), !,
@@ -113,6 +112,10 @@ presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :-
 	nonmember(@, Authority), !,
 	UserinfoPresence = 0.
 
+presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence) :- 
+	AuthorityPresence == 0,
+	UserinfoPresence = 0.
+
 presenzaFragment(String, PresenzaFragment) :-
     member(#, String), !,
     PresenzaFragment = 1.
@@ -121,8 +124,8 @@ presenzaFragment(String, PresenzaFragment) :-
     nonmember(#, String), !,
     PresenzaFragment = 0.
 
-presenzaFragment([], PresenzaFragment) :-
-    PresenzaFragment = 0, !.
+%presenzaFragment([], PresenzaFragment, AuthorityPresence) :-
+%    PresenzaFragment = 0, !.
 
 presenzaQuery(Query, QueryPresence) :-
     member(?, Query), !,
@@ -142,9 +145,7 @@ digits123([A,B|R],R):-
 digits123([A|R],R):-
     digit(A).
 
-is_IP(Inp, Boolean):-
-    string_to_list(Inp, URICodeList),
-    codeListToAtomList(URICodeList, In),
+is_IP(In, Boolean):-
     digits123(In,['.'|R1]),
     digits123(R1,['.'|R2]),
     digits123(R2,['.'|R3]),
@@ -163,6 +164,22 @@ controlloIp(List, BooleanIp) :-
 
 controlloIp(_, BooleanIp) :-
     BooleanIp == 0.
+
+isMailto(Scheme, BooleanMailto) :-
+	Scheme == ['m', 'a', 'i', 'l', 't', 'o'],
+	BooleanMailto = 1, !.
+
+isMailto(_, BooleanMailto) :-
+	BooleanMailto = 0.
+
+%controllare news scheme con la specifica
+
+isNews(Scheme, BooleanNews) :-
+	Scheme == ['n', 'e', 'w', 's'],
+	BooleanNews = 1, !.
+
+isNews(_, BooleanMailto) :-
+	BooleanNews = 0.
 
 nonmember(Arg,[Arg|_]) :-
 	!,
@@ -185,6 +202,10 @@ splitAuthority(X, Car, BooleanAuthority, Before, After) :-
 	removeHead(X, Xfirst),
 	removeHead(Xfirst, Z),
 	splitList(Z, Car, Before, After), !.
+
+splitAuthority(X, Car, BooleanAuthority, Before, X) :-
+	Before = [],
+	BooleanAuthority == 0, !.
 
 %Operazioni sull'authority
 
@@ -221,12 +242,12 @@ splitQuery(String, Car, Before, After, QueryPresence) :-
 
 splitQuery(String, Car, Before, After, QueryPresence) :-
     QueryPresence == 0,
-    Before = Path,
-    After = Query, !.
+    Before = String,
+    After = [], !.
 
 %Out code
 out_porta([], SottostringaOut) :- 
-	SottostringaOut = 80, !.
+	SottostringaOut = [], !.
 
 out_porta(Sottostringa, SottostringaOut) :- 
 	isDigit(Sottostringa), 
@@ -239,6 +260,9 @@ out_scheme(Scheme, SchemeOut) :-
 out_host(Host, HostOut) :- 
 	verifica_identificatori(Host),
 	string_to_atom(Host, HostOut).
+
+out_host([], HostOut) :- 
+	HostOut = [].
 
 out_userinfo(Userinfo, UserinfoOut) :-
 	Userinfo \= [],
@@ -254,12 +278,12 @@ out_fragment(Fragment, FragmentOut) :-
 out_fragment([], FragmentOut) :-
     FragmentOut = [], !.
 
+out_query([], QueryOut) :-
+    QueryOut = [], !.
+
 out_query(Query, QueryOut) :-
     nonmember(#, Query),
     string_to_atom(Query, QueryOut), !.
-
-out_query([], QueryOut) :-
-    QueryOut = [], !.
 
 out_Path(Path, PathOut) :-
     Path \= [],
