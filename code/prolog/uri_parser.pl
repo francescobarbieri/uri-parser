@@ -1,40 +1,12 @@
-% Allora boys, in breve cosa fa:
-% Presa una stringa "https://user@info.com:8080/altro"
-% 1) Splitta la lista dove ci sono i :
-%	[https] [//user@info.com:8080/altro]
-% 2) Controlla se è presente l'authority con i // e li rimuove
-%	Se presente allora AuthorityPresence = 1, altrimenti 0
-%	[https] [user@info.com:8080/altro]
-% 	NB: Il caso in cui non c'è l'authority è ancora da gestire, infatti se non c'è una authority correttamente
-%	formattata ritorna false
-% 3) Aggiunge uno / alla fine della stringa per il caso in cui sia https://domain.com per riconoscere l'authority
-%	Questo passaggio sarà da gestire nel momento in cui si fa il path, o trovare un metodo per aggiungere lo /
-%	finale SOLO SE non presente nell'authority, ma per determinare l'authority uso lo / quindi è un po' un casino ma si può fare,
-%	bisogna solo trovare un metodo
-% 4) Divide l'authority in presenza dello /
-%	[https] [user@info.com:8080] [altro]
-% 5) Lavora sull'authority, individua se sono presenti userinfo e port
-% 	Setta di conseguenza PortPresence e UserinfoPresence (come per AuthorityPresence)
-% 6) Divide di conseguenza la porta in presenza dei :
-%	[https] [user@info.com] [8080] [altro]
-%	Se PortPresence == 0 allora Port = []
-% 7) Divide di conseguenza lo userinfo in presenza di @
-%	[https] [user] [info.com] [8080] [altro]
-% 	Se UserinfoPresence == 0 allora Userinfo = []
-% 8) E niente poi stampa tutto come era per lo scheme
-% 8*) Altro = Path + Query(?) + Fragmanetà(#)
-% 9) Isola il fragment da Altro basandosi sull'#
-%
-%================================ 
-% Prossimi step per terminare la parte dell'authority:
+% Prossimi step per terminare il codice
 % 1) E boh controllare i caratteri che non so se ho tenuto conto di tutti
 % 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è un ip
 % 3) Quando è presente l'authority, si deve riconoscere con / , ? , # oppure il '', adesso appenda uno / e riconosce con quello
+% 4) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE
+% 5) Zos
 
 uri_parse(URIString, URI) :- 
 	string_to_list(URIString, URICodeList),
-
-    %conversione da lista di codici a lista leggibile
     codeListToAtomList(URICodeList, URIList),
 
     %se trovo un ":" nella lista di char non faccio backtracking dato che è l'elemento che mi indica la fine dello scheme
@@ -44,10 +16,18 @@ uri_parse(URIString, URI) :-
 	splitList(URIList, :, Scheme, Sottostringa),
 	presenzaAuthority(Sottostringa, AuthorityPresence),
 
-	isMailto(Scheme, BooleanMailto),
-	isNews(Scheme, BooleanNews),
-	isTelfax(Scheme, BooleanTelfax),
-	isZos(Scheme, BooleanZos),
+	% 0 -> nessuno
+	% 1 -> mailto
+	% 2 -> news
+	% 3 -> tel
+	% 4 -> fax
+	% 5 -> zos
+	isSpecialScheme(Scheme, BooleanSpecialScheme),
+
+	mailto(Sottostringa, Userinfo, Host, BooleanSpecialScheme),
+	news(Sottostringa, Host, BooleanSpecialScheme),
+	tel(Sottostringa, Userinfo, BooleanSpecialScheme),
+	fax(Sottostringa, Userinfo, BooleanSpecialScheme),
 	
 	list_append(/, Sottostringa, Sottostringa1),
 
@@ -61,7 +41,7 @@ uri_parse(URIString, URI) :-
 	splitPort(Authority, :, TempAuthority, Port, PortPresence),
     splitHost(TempAuthority, @, Userinfo, Host, UserinfoPresence),
     splitFragment(After, #, OtherString, Fragment, FragmentPresence),
-	splitQuery(OtherString, ?, Path, Query, QueryPresence),
+	splitQuery(OtherString, ?, Path, Query, QueryPresence, BooleanSpecialScheme),
 
 	is_IP(Host, BooleanIp),
     controlloIp(Host, BooleanIp),
@@ -74,7 +54,7 @@ uri_parse(URIString, URI) :-
     out_query(Query, QueryOut),
     out_Path(Path, PathOut),
 
-	%URI = uri(Scheme, Userinfo, Host, Port, Path, Query, Fragment).
+	%URI = uri(SchemeOut, Host, Userinfo, BooleanSpecialScheme, TempAuthority).
 	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, PathOut, QueryOut, FragmentOut).
 
 uri(_, _, _, _, _, _, _).
@@ -165,21 +145,28 @@ controlloIp(List, BooleanIp) :-
 controlloIp(_, BooleanIp) :-
     BooleanIp == 0.
 
-isMailto(Scheme, BooleanMailto) :-
-	Scheme == ['m', 'a', 'i', 'l', 't', 'o'],
-	BooleanMailto = 1, !.
+isSpecialScheme(Scheme, BooleanSpecialScheme) :-
+	Scheme = ['m','a','i','l','t','o'],
+	BooleanSpecialScheme = 1, !.
 
-isMailto(_, BooleanMailto) :-
-	BooleanMailto = 0.
+isSpecialScheme(Scheme, BooleanSpecialScheme) :-
+	Scheme = ['n','e','w','s'],
+	BooleanSpecialScheme = 2, !.
 
-%controllare news scheme con la specifica
+isSpecialScheme(Scheme, BooleanSpecialScheme) :-
+	Scheme = ['t','e','l'],
+	BooleanSpecialScheme = 3, !.
 
-isNews(Scheme, BooleanNews) :-
-	Scheme == ['n', 'e', 'w', 's'],
-	BooleanNews = 1, !.
+isSpecialScheme(Scheme, BooleanSpecialScheme) :-
+	Scheme = ['f','a','x'],
+	BooleanSpecialScheme = 4, !.
 
-isNews(_, BooleanMailto) :-
-	BooleanNews = 0.
+isSpecialScheme(Scheme, BooleanSpecialScheme) :-
+	Scheme = ['z','o','s'],
+	BooleanSpecialScheme = 5, !.
+
+isSpecialScheme(_, BooleanSpecialScheme) :-
+	BooleanSpecialScheme = 0, !.
 
 nonmember(Arg,[Arg|_]) :-
 	!,
@@ -227,6 +214,8 @@ splitHost(String, Car, Before, After, UserinfoPresence) :-
 	Before = [],
 	After = String, !.
 
+splitHost([], Car, Before, After, UserinfoPresence) :- !.
+
 splitFragment(String, Car, Before, After, FragmentPresence) :-
     FragmentPresence == 0,
 	After = [],
@@ -236,14 +225,51 @@ splitFragment(String, Car, Before, After, FragmentPresence) :-
 	FragmentPresence == 1,
 	splitList(String, Car, Before, After), !.
 
-splitQuery(String, Car, Before, After, QueryPresence) :-
+splitQuery(String, Car, Before, After, QueryPresence, Boolean) :-
     QueryPresence == 1,
+	Boolean == 0,
     splitList(String, Car, Before, After), !.
 
-splitQuery(String, Car, Before, After, QueryPresence) :-
+splitQuery(String, Car, Before, After, QueryPresence, Boolean) :-
     QueryPresence == 0,
+	Boolean == 0,
     Before = String,
     After = [], !.
+
+splitQuery(_, _, Before, _, _, _) :-
+	Before = [], !.
+
+mailto(List, Out, Out2, Boolean) :-
+	Boolean == 1,
+	nonmember(@, List),
+	Out = List,
+	Out2 = [], !.
+
+mailto(List, Out, Out2, Boolean) :-
+	Boolean == 1,
+	member(@, List),
+	splitList(List, @, Out, Out2), !.
+
+mailto(List, Out, Out2, _) :- !.
+
+news(List, Out, Boolean) :-
+	Boolean == 2,
+	Out = List, !.
+
+news(List, Out, _) :- !.
+
+tel(List, Out, Boolean) :-
+	Boolean == 3,
+	Out = List, !.
+
+tel(List, Out, _) :- !.
+
+fax(List, Out, Boolean) :-
+	Boolean == 4,
+	Out = List, !.
+
+fax(List, Out, _) :- !.
+
 
 %Out code
 out_porta([], SottostringaOut) :- 
@@ -257,12 +283,16 @@ out_scheme(Scheme, SchemeOut) :-
 	verifica_identificatori(Scheme),
 	string_to_atom(Scheme, SchemeOut).
 
+out_host([], HostOut) :- 
+	HostOut = [], !.
+
+out_host(Host, HostOut) :- 
+	Host = ['1', '1', '1', '.', '1', '1', '1', '.', '1', '1', '1', '.', '1', '1', '1'],
+	HostOut = [], !.
+
 out_host(Host, HostOut) :- 
 	verifica_identificatori(Host),
 	string_to_atom(Host, HostOut).
-
-out_host([], HostOut) :- 
-	HostOut = [].
 
 out_userinfo(Userinfo, UserinfoOut) :-
 	Userinfo \= [],
