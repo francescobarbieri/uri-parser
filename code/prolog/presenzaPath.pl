@@ -8,14 +8,10 @@ presenzaPath(Sottostringa, PresenzaAuthority, PresenzaPath):-
     nonmember(/, Sottostringa), 
     presenzaPath = 0, !.
 
-
 presenzaPath(Sottostringa, PresenzaAuthority, PresenzaPath):-
     PresenzaAuthority == 0,
     member(/, Sottostringa),
     PresenzaPath = 1, !.
-
-
-
 
 presenzaPath(Sottostringa, PresenzaAuthority, PresenzaPath):-
     PresenzaAuthority == 0,
