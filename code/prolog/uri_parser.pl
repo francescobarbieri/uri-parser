@@ -1,15 +1,14 @@
 % Prossimi step per terminare il codice
 % 1) E boh controllare i caratteri che non so se ho tenuto conto di tutti
 % 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è un ip
-% 3) Quando è presente l'authority, si deve riconoscere con / , ? , # oppure il '', adesso appenda uno / e riconosce con quello
-% 4) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE CHE L'ANTONIOTTI MI SPARA
-% 5) Zos
+% 3) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE CHE L'ANTONIOTTI MI SPARA
+% 4) Controllo sulle parti presenti o meno (quali sono obbligatorie etc)
+% 5) diplay/2, display/1
 
 uri_parse(URIString, URI) :- 
 	string_to_list(URIString, URICodeList),
     codeListToAtomList(URICodeList, URIList),
-
-    %se trovo un ":" nella lista di char non faccio backtracking dato che è l'elemento che mi indica la fine dello scheme
+    
     member(':', URIList),
     !,
 
@@ -31,7 +30,9 @@ uri_parse(URIString, URI) :-
 	
 	list_append(/, Sottostringa, Sottostringa1),
 
-	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After),
+	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After1),
+
+    delete_last(After1, After),
 
 	presenzaPort(Authority, PortPresence, AuthorityPresence),
     presenzaUserinfo(Authority, UserinfoPresence, AuthorityPresence),
@@ -52,9 +53,9 @@ uri_parse(URIString, URI) :-
     out_porta(Port, PortaOut),
     out_fragment(Fragment, FragmentOut),
     out_query(Query, QueryOut),
-    out_Path(Path, PathOut),
+    out_Path(Path, PathOut, BooleanSpecialScheme),
 
-	%URI = uri(SchemeOut, Host, Userinfo, BooleanSpecialScheme, TempAuthority).
+	%URI = uri(BooleanSpecialScheme, PortPresence, QueryPresence, FragmentPresence).
 	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, PathOut, QueryOut, FragmentOut).
 
 uri(_, _, _, _, _, _, _).
@@ -236,6 +237,17 @@ splitQuery(String, _, Before, After, QueryPresence, Boolean) :-
     Before = String,
     After = [], !.
 
+splitQuery(String, Car, Before, After, QueryPresence, Boolean) :-
+    QueryPresence == 1,
+	Boolean == 5,
+    splitList(String, Car, Before, After), !.
+
+splitQuery(String, _, Before, After, QueryPresence, Boolean) :-
+    QueryPresence == 0,
+	Boolean == 5,
+    Before = String,
+    After = [], !.
+
 splitQuery(_, _, Before, _, _, _) :-
 	Before = [], !.
 
@@ -273,7 +285,7 @@ fax(_, _, _) :- !.
 
 %Out code
 out_porta([], SottostringaOut) :- 
-	SottostringaOut = [], !.
+	SottostringaOut = 80, !.
 
 out_porta(Sottostringa, SottostringaOut) :- 
 	isDigit(Sottostringa), 
@@ -315,11 +327,24 @@ out_query(Query, QueryOut) :-
     nonmember(#, Query),
     string_to_atom(Query, QueryOut), !.
 
-out_Path(Path, PathOut) :-
+out_Path(Path, PathOut, Boolean) :-
+    Boolean == 0,
     Path \= [],
 	string_to_atom(Path, PathOut), !.
 
-out_Path([], PathOut) :-
+out_Path(Path, PathOut, Boolean) :-
+	Boolean == 5,
+    Path \= [],
+    parentesiCheck(Path, BooleanParentesi),
+    splitZos(Path, Id44, Id8, BooleanParentesi),
+	length(Id44, N1),
+	length(Id8, N2),
+	N1 =< 44, N2 =< 9,
+	alphabetical(Id8), alphabetical(Id44),
+	last(Id44, A), checkChar(A, '.'),
+	string_to_atom(Path, PathOut), !.
+
+out_Path([], PathOut, _) :-
     PathOut = []. 
 
 % Fuffa
@@ -345,7 +370,6 @@ verifica_identificatori([X | Xs]) :-
 	X \= '@', 
 	X \= ':',
 	verifica_identificatori(Xs).
-
 
 splitList([A|Ls], A, [], Ls) :- !.
 splitList([L|Ls], A, [L|Xs], R):- 
@@ -383,6 +407,33 @@ tras(X) :-
     number_string(Y,X),
 	Y < 256,
 	Y > 0.
+
+alphabetical([X | _]) :- char_type(X, alpha), !.
+
+checkChar(A, Car) :- A \= Car, !.
+
+delete_last(X,Y) :-
+    reverse(X,[_|X1]), reverse(X1,Y), !.
+
+delete_last([], Y) :- Y = [].
+
+%#parentesiCHEEEEECK
+parentesiCheck(List, Boolean) :-
+    member('(', List),
+    last(List, ')'),
+    Boolean = 1, !.
+
+parentesiCheck(List, Boolean) :-
+    nonmember('(', List),
+    nonmember(')', List),
+    Boolean = 0, !.
+
+splitZos(Path, Id44, After, Boolean) :-
+    Boolean == 1,
+    splitList(Path, '(', Id44, After),
+    !.
+splitZos(Path, Id44, _, Boolean) :-
+    Boolean == 0, Id44 = Path.
 
 %TEST
 %Test presi da https://datatracker.ietf.org/doc/html/rfc3986#section-1.1.2
