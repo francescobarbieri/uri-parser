@@ -1,2 +1,0 @@
-domande al prof:
-1) si possono usare i ":" per splittare host e port?
