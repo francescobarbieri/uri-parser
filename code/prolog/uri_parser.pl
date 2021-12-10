@@ -31,7 +31,7 @@ uri_parse(URIString, URI) :-
 	
 	list_append(/, Sottostringa, Sottostringa1),
 
-	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After),
+	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After1),
 
     delete_last(After1, After),
 
