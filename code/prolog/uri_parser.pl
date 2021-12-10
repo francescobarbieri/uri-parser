@@ -5,7 +5,8 @@
 % 4) Controllo sulle parti presenti o meno (quali sono obbligatorie etc)
 % 5) diplay/2, display/1
 % 6) (!!!) PROBLEMA DA RISOLVERE ASSOLUTAMENTE: la stringa "https://pippo.com?query" e/o la stringa "https://pippo.com#fragment" ritornano false
-
+% 7) " " -> "%20"
+ 
 uri_parse(URIString, URI) :- 
 	string_to_list(URIString, URICodeList),
     codeListToAtomList(URICodeList, URIList),
