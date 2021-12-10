@@ -1,9 +1,10 @@
 % Prossimi step per terminare il codice
 % 1) E boh controllare i caratteri che non so se ho tenuto conto di tutti
-% 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è un ip
+% 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è u1n ip
 % 3) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE CHE L'ANTONIOTTI MI SPARA
 % 4) Controllo sulle parti presenti o meno (quali sono obbligatorie etc)
 % 5) diplay/2, display/1
+% 6) (!!!) PROBLEMA DA RISOLVERE ASSOLUTAMENTE: la stringa "https://pippo.com?query" e/o la stringa "https://pippo.com#fragment" ritornano false
 
 uri_parse(URIString, URI) :- 
 	string_to_list(URIString, URICodeList),
@@ -30,7 +31,7 @@ uri_parse(URIString, URI) :-
 	
 	list_append(/, Sottostringa, Sottostringa1),
 
-	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After1),
+	splitAuthority(Sottostringa1, /, AuthorityPresence, Authority, After),
 
     delete_last(After1, After),
 
