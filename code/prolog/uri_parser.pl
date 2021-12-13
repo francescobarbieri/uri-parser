@@ -1,60 +1,119 @@
 % Prossimi step per terminare il codice
 % SOLVED 1) E boh controllare i caratteri che non so se ho tenuto conto di tutti
 % 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è u1n ip
-% 3) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE CHE L'ANTONIOTTI MI SPARA
+% NONLOSOLVO 3) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE CHE L'ANTONIOTTI MI SPARA
 % SOLVED 4)  Controllo sulle parti presenti o meno (quali sono obbligatorie etc)
 % 5) diplay/2, display/1
 % SOLVED 6) (!!!) PROBLEMA DA RISOLVERE ASSOLUTAMENTE: la stringa "https://pippo.com?query" e/o la stringa "https://pippo.com#fragment" ritornano false
 % 7) " " -> "%20"
-% 8) Sistemare nomi predicati e nomi variabili
+% SOLVED 8) Sistemare nomi predicati e nomi variabili
 % 9) Buttare tutto su emacs o convertirlo a emacs
+% SOLVED 10) Sistemare formattazione (prima su vs poi su emacs)
+
+% Prolog Uri Parser [12/2021] - Linguaggi di Programmazione
+% Contributors:
+% Mat. 856375 - Francesco Barbieri
+% Mat. 852255 - Federico Bartsch
+% Mat.  - Alessandro Moscardo
 
 uri_parse(URIString, URI) :- 
+	% Trasformazione della stringa a una lista di codici
 	string_to_list(URIString, URICodeList),
+
+	% Trasformazione della lista di codici alla lista di caratteri
     code_list_to_atom_list(URICodeList, URIList),
     
+	% Controllo sulla presenza dei :, obbligatori per qualsiasi tipo di URI,
+	% se non presenti l'URI è direttamente da scartare
     member(':', URIList),
     !,
 
-	split_list(URIList, :, Scheme, Sottostringa),
-	authority_presence(Sottostringa, AuthorityPresence),
+	% Predicato che divide lo scheme dal resto della stringa tramite i primi :
+	split_list(URIList, :, Scheme, String0),
 
-	% 0 -> nessuno
-	% 1 -> mailto
-	% 2 -> news
-	% 3 -> tel
-	% 4 -> fax
-	% 5 -> zos
+	% Riconoscimento della presenza dell'authority in base allo '//' 
+	% obbligatorio. Se presente BooleanAuthority = 1, altrimenti 0
+	authority_presence(String0, BooleanAuthority),
+
+	% Riconoscimento di evenutali scheme speciali, che necessitano di azioni
+	% e/o controlli differenti tramite BooleanSpecial scheme che avrà i
+	% seguenti valori:
+	% Scheme 	|	BooleanSpeacialScheme
+	% Default	|	0
+	% mailto	|	1
+	% news		|	2
+	% tel 		|	3
+	% fax		|	4
+	% zos		|	5
 	is_special_scheme(Scheme, BooleanSpecialScheme),
 
-	mailto(Sottostringa, Userinfo, Host, BooleanSpecialScheme),
-	news(Sottostringa, Host, BooleanSpecialScheme),
-	tel(Sottostringa, Userinfo, BooleanSpecialScheme),
-	fax(Sottostringa, Userinfo, BooleanSpecialScheme),
+	% Assegnazione alle rispettive parti dell'URI in base alla
+	% tipologia di scheme
+	mailto(String0, Userinfo, Host, BooleanSpecialScheme),
+	news(String0, Host, BooleanSpecialScheme),
+	tel(String0, Userinfo, BooleanSpecialScheme),
+	fax(String0, Userinfo, BooleanSpecialScheme),
 
-    fragment_presence(Sottostringa, FragmentPresence),
-    query_presence(Sottostringa, QueryPresence),
+	% Si inizia il riconoscimento della stringa dal fondo, in modo tale
+	% da poter permettere il riconscimento delle URI del tipo:
+	% - "https://domain.com"
+	% - "https://domain.com?query"
+	% - "https://domain.com#fragment"
+	
+	% Riconoscimento della presenza del fragment, se presente
+	% BooleanFragment = 1, altrimenti 0
+    fragment_presence(String0, BooleanFragment),
+    
+	% Riconoscimento della presenza della query, se presente
+	% BooleanQuery = 1, altrimenti 0
+	query_presence(String0, BooleanQuery),
 
-    split_fragment(Sottostringa, #, OtherString, Fragment, FragmentPresence),
-	split_query(OtherString, ?, BeforeQuery, Query, QueryPresence, BooleanSpecialScheme),
+	% Predicato che splitta in corrispondenza del primo # se
+	% BooleanFragment è pari a 1
+    split_fragment(String0, #, String1, Fragment, BooleanFragment),
+	
+	% Predicato che splitta in corrispondenza del primo ? se
+	% BooleanQuery è pari a 1
+	split_query(String1, ?, String2, Query, BooleanQuery, BooleanSpecialScheme),
 
-	remove_slash(BeforeQuery, Z, AuthorityPresence),
-	remove_slash(Z, Z2, AuthorityPresence),
+	% Rimozione dei due slash '//' dell'authority se quest'ultima
+	% è presente (BooleanAuthority = 1)
+	remove_slash(String2, String3, BooleanAuthority),
+	remove_slash(String3, String4, BooleanAuthority),
 
-	split_authority(Z2, AuthorityPresence, Authority, Path),
+	% Predicao che splitta l'authority e il path in corrispondenza dello '/'',
+	% del '?'' o dell' '#'. Per le query che non hanno path ma una tra
+	% query e/o fragment
+	split_authority(String4, BooleanAuthority, Authority, Path),
 
-	port_presence(Authority, PortPresence, AuthorityPresence),
-    userinfo_presence(Authority, UserinfoPresence, AuthorityPresence),
-	split_port(Authority, :, TempAuthority, Port, PortPresence),
-    splot_host(TempAuthority, @, Userinfo, Host, UserinfoPresence),
+	% Analizza l'authority
+	% Predicato che riconosce la presenza della porta basandosi sui ':',
+	% BooleanPort = 1 se presente, altrimenti 0
+	port_presence(Authority, BooleanPort, BooleanAuthority),
 
+	% Predicato che riconosce la presenza dello userinfo basandosi su '@'
+	% BooleanUserinfo = 1 se presente, altrimenti 0
+    userinfo_presence(Authority, BooleanUserinfo, BooleanAuthority),
+	
+	% Predicato che splitta la port se presente basandosi sui ':'
+	split_port(Authority, :, String5, Port, BooleanPort),
+
+	% Predicato che splitta lo userinfo e la port basandosi su '@'
+    splot_host(String5, @, Userinfo, Host, BooleanUserinfo),
+
+	% Predicato che riconosce se l'host è un IP per eseguire il controllo
+	% su di esso. Sono ammessi N.N.N.N, NNN.NNN.NNN.NNN e forme intermedie
+	% con N digit. Inoltre NNN non può essere > di 255
 	is_IP(Host, BooleanIp),
-    check_IP(Host, BooleanIp),
+	
+	% Predicato che effettua il controllo sull'IP
+    controlloIp(Host, BooleanIp),
 
 	%checkSpaces(Query, TempQuery),
 	%checkSpaces(Fragment, TempFragment),
 	%checkSpaces(Path, TempPath),
 
+	% Predicati per la trasformazione da List a String per l'output
 	out_scheme(Scheme, SchemeOut),
 	out_userinfo(Userinfo, UserinfoOut),
 	out_host(Host, HostOut),
@@ -63,11 +122,13 @@ uri_parse(URIString, URI) :-
     out_fragment(Fragment, FragmentOut),
     out_Path(Path, PathOut, BooleanSpecialScheme),
 
-	%URI = uri(BooleanSpecialScheme, PortPresence, QueryPresence, FragmentPresence).
-	%URI = uri(Z2, AuthorityPresence).
+	% Output delle componenti dell'URI
 	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, PathOut, QueryOut, FragmentOut).
 
 uri(_, _, _, _, _, _, _).
+
+% Predicati per il controllo della presenza o meno delle varie componenti
+% dell'URI
 
 authority_presence(X, Y) :- 
 	nth1(1, X, /),
@@ -78,251 +139,274 @@ authority_presence(X, Y) :-
 authority_presence(_, Y) :- 
 	Y is 0.
 
-port_presence(Authority, PortPresence, AuthorityPresence) :- 
-	AuthorityPresence == 1,
-	member(:, Authority), !,
-	PortPresence = 1.
+port_presence(Authority, BooleanPort, BooleanAuthority) :- 
+	BooleanAuthority == 1,
+	member(:, Authority),
+	!,
+	BooleanPort = 1.
 
-port_presence(Authority, PortPresence, AuthorityPresence) :- 
-	AuthorityPresence == 1,
-	nonmember(:, Authority), !,
-	PortPresence = 0.
+port_presence(Authority, BooleanPort, BooleanAuthority) :- 
+	BooleanAuthority == 1,
+	nonmember(:, Authority),
+	!,
+	BooleanPort = 0.
 
-port_presence(_, PortPresence, AuthorityPresence) :- 
-	AuthorityPresence == 0,
-	PortPresence = 0.
+port_presence(_, BooleanPort, BooleanAuthority) :- 
+	BooleanAuthority == 0,
+	BooleanPort = 0.
 
-userinfo_presence(Authority, UserinfoPresence, AuthorityPresence) :- 
-	AuthorityPresence == 1,
-	member(@, Authority), !,
-	UserinfoPresence = 1.
+userinfo_presence(Authority, BooleanUserinfo, BooleanAuthority) :- 
+	BooleanAuthority == 1,
+	member(@, Authority),
+	!,
+	BooleanUserinfo = 1.
 
-userinfo_presence(Authority, UserinfoPresence, AuthorityPresence) :- 
-	AuthorityPresence == 1,
-	nonmember(@, Authority), !,
-	UserinfoPresence = 0.
+userinfo_presence(Authority, BooleanUserinfo, BooleanAuthority) :- 
+	BooleanAuthority == 1,
+	nonmember(@, Authority),
+	!,
+	BooleanUserinfo = 0.
 
-userinfo_presence(_, UserinfoPresence, AuthorityPresence) :- 
-	AuthorityPresence == 0,
-	UserinfoPresence = 0.
+userinfo_presence(_, BooleanUserinfo, BooleanAuthority) :- 
+	BooleanAuthority == 0,
+	BooleanUserinfo = 0.
 
 fragment_presence(String, Boolean) :-
-    member(#, String), !,
+    member(#, String),
+	!,
     Boolean = 1.
 
 fragment_presence(String, Boolean) :-
-    nonmember(#, String), !,
+    nonmember(#, String),
+	!,
     Boolean = 0.
 
-query_presence(Query, QueryPresence) :-
-    member(?, Query), !,
-    QueryPresence = 1.
+query_presence(Query, BooleanQuery) :-
+    member(?, Query),
+	!,
+    BooleanQuery = 1.
 
-query_presence(Query, QueryPresence) :-
-    nonmember(?, Query), !,
-    QueryPresence = 0.
+query_presence(Query, BooleanQuery) :-
+    nonmember(?, Query),
+	!,
+    BooleanQuery = 0.
 
-digits123([A,B,C|R],R):-
+% Predicati per il riconoscimento di specialScheme o default
+
+is_special_scheme(Scheme, Boolean) :-
+	Scheme = ['m','a','i','l','t','o'],
+	Boolean = 1,
+	!.
+
+is_special_scheme(Scheme, Boolean) :-
+	Scheme = ['n','e','w','s'],
+	Boolean = 2,
+	!.
+
+is_special_scheme(Scheme, Boolean) :-
+	Scheme = ['t','e','l'],
+	Boolean = 3,
+	!.
+
+is_special_scheme(Scheme, Boolean) :-
+	Scheme = ['f','a','x'],
+	Boolean = 4,
+	!.
+
+is_special_scheme(Scheme, Boolean) :-
+	Scheme = ['z','o','s'],
+	Boolean = 5,
+	!.
+
+is_special_scheme(_, Boolean) :-
+	Boolean = 0,
+	!.
+
+% Predicati per il riconoscimento ed il controllo dell'IP
+
+digits123([A, B, C | R], R) :-
     digit(A),
     digit(B),
     digit(C).
-digits123([A,B|R],R):-
+digits123([A, B | R], R) :-
     digit(A),
     digit(B).
-digits123([A|R],R):-
+digits123([A | R], R) :-
     digit(A).
 
-is_IP(In, Boolean):-
-    digits123(In,['.'|R1]),
-    digits123(R1,['.'|R2]),
-    digits123(R2,['.'|R3]),
-    digits123(R3,[]),
-    Boolean = 1, !.
+is_IP(In, Boolean) :-
+    digits123(In, ['.' | R1]),
+    digits123(R1, ['.' | R2]),
+    digits123(R2, ['.' | R3]),
+    digits123(R3, []),
+    Boolean = 1,
+	!.
 
 is_IP(_, Boolean) :-
     Boolean = 0.
 
-check_IP(List, BooleanIp) :-
-    BooleanIp == 1, 
+controlloIp(List, Boolean) :-
+    Boolean == 1, 
 	split_list(List, ., Out, Other1),
 	split_list(Other1, ., Out1, Other2),
 	split_list(Other2, ., Out2, Out3),
-	tras(Out), tras(Out1), tras(Out2), tras(Out3), !.
+	tras(Out), tras(Out1), tras(Out2), tras(Out3),
+	!.
 
-check_IP(_, BooleanIp) :-
-    BooleanIp == 0.
+controlloIp(_, Boolean) :-
+    Boolean == 0.
 
-is_special_scheme(Scheme, BooleanSpecialScheme) :-
-	Scheme = ['m','a','i','l','t','o'],
-	BooleanSpecialScheme = 1, !.
+% Predicati per lo split delle varie componenti dell'URI
 
-is_special_scheme(Scheme, BooleanSpecialScheme) :-
-	Scheme = ['n','e','w','s'],
-	BooleanSpecialScheme = 2, !.
-
-is_special_scheme(Scheme, BooleanSpecialScheme) :-
-	Scheme = ['t','e','l'],
-	BooleanSpecialScheme = 3, !.
-
-is_special_scheme(Scheme, BooleanSpecialScheme) :-
-	Scheme = ['f','a','x'],
-	BooleanSpecialScheme = 4, !.
-
-is_special_scheme(Scheme, BooleanSpecialScheme) :-
-	Scheme = ['z','o','s'],
-	BooleanSpecialScheme = 5, !.
-
-is_special_scheme(_, BooleanSpecialScheme) :-
-	BooleanSpecialScheme = 0, !.
-
-nonmember(Arg,[Arg|_]) :-
-	!,
-	fail.
-nonmember(Arg,[_|Tail]) :-
-	!,
-	nonmember(Arg,Tail).
-nonmember(_,[]).
-
-%Il caso in cui no c'è l'authority è ancora da gestire, infatti se non c'è una authority correttamente formattata ritorna false
-
-removeHead([_ | Xs], Xs).
-
-%split_authority(X, BooleanAuthority, Before, After) :-
-%	BooleanAuthority == 1,
-%	removeHead(X, Xfirst),
-%	removeHead(Xfirst, Z),
-%	split_list(Z, /, Before, After), !.
-
-split_authority(X, BooleanAuthority,Before, After) :-
+split_authority(X, BooleanAuthority, Before, After) :-
 	BooleanAuthority == 1,
 	member(/, X),
-	split_list(X, /, Before, After), !.
+	split_list(X, /, Before, After),
+	!.
 
 split_authority(X, BooleanAuthority, Before, After) :-
 	BooleanAuthority == 1,
 	nonmember(/, X),
-	Before = X, After = [], !.
+	Before = X, After = [],
+	!.
 
 split_authority(X, BooleanAuthority, Before, After) :-
 	BooleanAuthority == 0,
 	nonmember(/, X),
-	Before = [], After = X, !.
+	Before = [], After = X,
+	!.
 
 split_authority(X, BooleanAuthority, Before, After) :-
 	BooleanAuthority == 0,
 	member(/, X),
 	removeHead(X, Out),
-	Before = [], After = Out, !.
-
-%split_authority(X, _, BooleanAuthority, Before, X) :-
-%	Before = [],
-%	BooleanAuthority == 0, !.
+	Before = [], After = Out,
+	!.
 
 %Operazioni sull'authority
 
-split_port(String, Car, Before, After, PortPresence) :-
-	PortPresence == 1,
-	split_list(String, Car, Before, After), !.
+split_port(X, Car, Before, After, BooleanPort) :-
+	BooleanPort == 1,
+	split_list(X, Car, Before, After),
+	!.
 
-split_port(String, _, Before, After, PortPresence) :-
-	PortPresence == 0,
-	Before = String,
-	After = [], !.
+split_port(X, _, Before, After, BooleanPort) :-
+	BooleanPort == 0,
+	Before = X,
+	After = [],
+	!.
 
-splot_host(String, Car, Before, After, UserinfoPresence) :-
-	UserinfoPresence == 1,
-	split_list(String, Car, Before, After), !.
+splot_host(X, Car, Before, After, BooleanUserinfo) :-
+	BooleanUserinfo == 1,
+	split_list(X, Car, Before, After),
+	!.
 
-splot_host(String, _, Before, After, UserinfoPresence) :-
-	UserinfoPresence == 0,
+splot_host(X, _, Before, After, BooleanUserinfo) :-
+	BooleanUserinfo == 0,
 	Before = [],
-	After = String, !.
+	After = X,
+	!.
 
 splot_host([], _, _, _, _) :- !.
 
-split_fragment(String, _, Before, After, FragmentPresence) :-
-    FragmentPresence == 0,
+split_fragment(X, _, Before, After, BooleanFragment) :-
+    BooleanFragment == 0,
 	After = [],
-	Before = String, !.
+	Before = X,
+	!.
 
-split_fragment(String, Car, Before, After, FragmentPresence) :-
-	FragmentPresence == 1,
-	split_list(String, Car, Before, After), !.
+split_fragment(X, Car, Before, After, BooleanFragment) :-
+	BooleanFragment == 1,
+	split_list(X, Car, Before, After),
+	!.
 
-split_query(String, Car, Before, After, QueryPresence, Boolean) :-
+split_query(X, Car, Before, After, QueryPresence, BooleanSpecialScheme) :-
     QueryPresence == 1,
-	Boolean == 0,
-    split_list(String, Car, Before, After), !.
+	BooleanSpecialScheme == 0,
+    split_list(X, Car, Before, After),
+	!.
 
-split_query(String, _, Before, After, QueryPresence, Boolean) :-
+split_query(X, _, Before, After, QueryPresence, BooleanSpecialScheme) :-
     QueryPresence == 0,
-	Boolean == 0,
-    Before = String,
-    After = [], !.
+	BooleanSpecialScheme == 0,
+    Before = X,
+    After = [],
+	!.
 
-split_query(String, Car, Before, After, QueryPresence, Boolean) :-
+split_query(X, Car, Before, After, QueryPresence, BooleanSpecialScheme) :-
     QueryPresence == 1,
-	Boolean == 5,
-    split_list(String, Car, Before, After), !.
+	BooleanSpecialScheme == 5,
+    split_list(X, Car, Before, After),
+	!.
 
-split_query(String, _, Before, After, QueryPresence, Boolean) :-
+split_query(X, _, Before, After, QueryPresence, BooleanSpecialScheme) :-
     QueryPresence == 0,
-	Boolean == 5,
-    Before = String,
-    After = [], !.
+	BooleanSpecialScheme == 5,
+    Before = X,
+    After = [],
+	!.
 
 split_query(_, _, Before, _, _, _) :-
-	Before = [], !.
+	Before = [],
+	!.
 
-mailto(List, Out, Out2, Boolean) :-
+mailto(List, Before, After, Boolean) :-
 	Boolean == 1,
 	nonmember(@, List),
-	Out = List,
-	Out2 = [], !.
+	Before = List,
+	After = [],
+	!.
 
-mailto(List, Out, Out2, Boolean) :-
+mailto(List, Before, After, Boolean) :-
 	Boolean == 1,
 	member(@, List),
-	split_list(List, @, Out, Out2), !.
+	split_list(List, @, Before, After),
+	!.
 
 mailto(_, _, _, _) :- !.
 
 news(List, Out, Boolean) :-
 	Boolean == 2,
-	Out = List, !.
+	Out = List,
+	!.
 
 news(_, _, _) :- !.
 
 tel(List, Out, Boolean) :-
 	Boolean == 3,
-	Out = List, !.
+	Out = List,
+	!.
 
 tel(_, _, _) :- !.
 
 fax(List, Out, Boolean) :-
 	Boolean == 4,
-	Out = List, !.
+	Out = List,
+	!.
 
 fax(_, _, _) :- !.
 
 %Out code
-out_porta([], SottostringaOut) :- 
-	SottostringaOut = 80, !.
+out_porta([], PortaOut) :- 
+	PortaOut = 80,
+	!.
 
-out_porta(Sottostringa, SottostringaOut) :- 
-	isDigit(Sottostringa), 
-	number_string(SottostringaOut, Sottostringa).
+out_porta(X, PortaOut) :- 
+	isDigit(X), 
+	number_string(PortaOut, X).
 
 out_scheme(Scheme, SchemeOut) :- 
 	verifica_identificatori(Scheme),
 	string_to_atom(Scheme, SchemeOut).
 
 out_host([], HostOut) :- 
-	HostOut = [], !.
+	HostOut = [],
+	!.
 
 out_host(Host, HostOut) :- 
 	Host = ['1', '1', '1', '.', '1', '1', '1', '.', '1', '1', '1', '.', '1', '1', '1'],
-	HostOut = [], !.
+	HostOut = [],
+	!.
 
 out_host(Host, HostOut) :- 
 	verifica_identificatori(Host),
@@ -341,32 +425,39 @@ out_fragment(Fragment, FragmentOut) :-
 	string_to_atom(Fragment, FragmentOut).
 
 out_fragment([], FragmentOut) :-
-    FragmentOut = [], !.
+    FragmentOut = [],
+	!.
 
 out_query([], QueryOut) :-
-    QueryOut = [], !.
+    QueryOut = [],
+	!.
 
 out_query(Query, QueryOut) :-
     nonmember(#, Query),
-    string_to_atom(Query, QueryOut), !.
+    string_to_atom(Query, QueryOut),
+	!.
 
-out_Path(Path, PathOut, Boolean) :-
-    Boolean == 0,
+out_Path(Path, PathOut, BooleanSpecialScheme) :-
+    BooleanSpecialScheme == 0,
     Path \= [],
 	verifica_identificatori_path(Path),
-	string_to_atom(Path, PathOut), !.
+	string_to_atom(Path, PathOut),
+	!.
 
-out_Path(Path, PathOut, Boolean) :-
-	Boolean == 5,
+out_Path(Path, PathOut, BooleanSpecialScheme) :-
+	BooleanSpecialScheme == 5,
     Path \= [],
     parentesiCheck(Path, BooleanParentesi),
     splitZos(Path, Id44, Id8, BooleanParentesi),
 	length(Id44, N1),
 	length(Id8, N2),
 	N1 =< 44, N2 =< 9,
-	alphabetical(Id8), alphabetical(Id44),
-	last(Id44, A), checkChar(A, '.'),
-	string_to_atom(Path, PathOut), !.
+	alphabetical(Id8),
+	alphabetical(Id44),
+	last(Id44, A),
+	checkChar(A, '.'),
+	string_to_atom(Path, PathOut),
+	!.
 
 out_Path([], PathOut, _) :-
     PathOut = []. 
@@ -374,6 +465,7 @@ out_Path([], PathOut, _) :-
 % Fuffa
 
 code_list_to_atom_list([], []) :- !.
+
 code_list_to_atom_list([X | Xs], [Y | Ys]) :- 
 	char_code(Y, X), 
 	code_list_to_atom_list(Xs, Ys).
@@ -387,6 +479,7 @@ verifica_identificatori(X) :-
 	Y \= '@', 
 	Y \= ':',
 	!.
+
 verifica_identificatori([X | Xs]) :-
 	X \= '/', 
 	X \= '?', 
@@ -403,6 +496,7 @@ verifica_identificatori_path(X) :-
 	Y \= '@', 
 	Y \= ':',
 	!.
+
 verifica_identificatori_path([X | Xs]) :-
 	X \= '?', 
 	X \= '#', 
@@ -410,27 +504,36 @@ verifica_identificatori_path([X | Xs]) :-
 	X \= ':',
 	verifica_identificatori_path(Xs).
 
-
 split_list([A|Ls], A, [], Ls) :- !.
+
 split_list([L|Ls], A, [L|Xs], R):- 
 	L\==A,
 	split_list(Ls, A, Xs, R),
 	!.
 
 list_append(X,[ ],[X]) :- !.
+
 list_append(X,[H|T],[H|Z]) :-
-	list_append(X,T,Z), !.    
+	list_append(X,T,Z),
+	!.    
 
 checkSpaces(Input, Output) :-
 	member(' ', Input),
-	replace(' ', '%20', Input, Output), !.
+	replace(' ', '%20', Input, Output),
+	!.
 
 checkSpaces(Input, Output) :-
 	nonmember(' ', Input),
 	Output = Input.
 
-remove_slash(X, Out, Boolean) :- Boolean == 1, removeHead(X, Out), !.
-remove_slash(X, Out, Boolean) :- Boolean == 0, Out = X.
+remove_slash(X, Out, Boolean) :-
+	Boolean == 1,
+	removeHead(X, Out),
+	!.
+
+remove_slash(X, Out, Boolean) :-
+	Boolean == 0,
+	Out = X.
 
 %================
 
@@ -459,54 +562,82 @@ tras(X) :-
 	Y < 256,
 	Y > 0.
 
-alphabetical([X | _]) :- char_type(X, alpha), !.
+alphabetical([X | _]) :- 
+	char_type(X, alpha),
+	!.
 
-checkChar(A, Car) :- A \= Car, !.
+checkChar(A, Car) :-
+	A \= Car,
+	!.
 
 delete_last(X,Y) :-
-    reverse(X,[_|X1]), reverse(X1,Y), !.
+    reverse(X,[_|X1]),
+	reverse(X1,Y),
+	!.
 
-delete_last([], Y) :- Y = [].
+delete_last([], Y) :-
+	Y = [].
 
 %#parentesiCHEEEEECK
 parentesiCheck(List, Boolean) :-
     member('(', List),
     last(List, ')'),
-    Boolean = 1, !.
+    Boolean = 1,
+	!.
 
 parentesiCheck(List, Boolean) :-
     nonmember('(', List),
     nonmember(')', List),
-    Boolean = 0, !.
+    Boolean = 0,
+	!.
 
 splitZos(Path, Id44, After, Boolean) :-
     Boolean == 1,
     split_list(Path, '(', Id44, After),
     !.
+
 splitZos(Path, Id44, _, Boolean) :-
-    Boolean == 0, Id44 = Path.
+    Boolean == 0,
+	Id44 = Path.
 
 replace(_, _, [], []).
-replace(O, R, [O|T], [R|T2]) :- replace(O, R, T, T2).
-replace(O, R, [H|T], [H|T2]) :- dif(H,O), replace(O, R, T, T2).
+
+replace(O, R, [O|T], [R|T2]) :-
+	replace(O, R, T, T2).
+
+replace(O, R, [H|T], [H|T2]) :-
+	dif(H,O),
+	replace(O, R, T, T2).
+
+nonmember(Arg,[Arg|_]) :-
+	!,
+	fail.
+
+nonmember(Arg,[_|Tail]) :-
+	!,
+	nonmember(Arg,Tail).
+
+nonmember(_,[]).
+
+removeHead([_ | Xs], Xs).
 
 %TEST
 %Test presi da https://datatracker.ietf.org/doc/html/rfc3986#section-1.1.2
 %sezione 1.1.2
-%?- uri_parse("ftp://ftp.is.co.za/rfc/rfc1808.txt", URI).
-%?- uri_parse("http://www.ietf.org/rfc/rfc2396.txt", URI).
-%?- uri_parse("ldap://[2001:db8::7]/c=GB?objectClass?one", URI).
-%?- uri_parse("mailto:John.Doe@example.com", URI).   
-%?- uri_parse("news:comp.infosystems.www.servers.unix", URI).
-%?- uri_parse("tel:+1-816-555-1212", URI).
-%?- uri_parse("telnet://192.0.2.16:80/", URI).
-%?- uri_parse("urn:oasis:names:specification:docbook:dtd:xml:4.1.2", URI).
+%?- uri_parse("ftp://ftp.is.co.za/rfc/rfc1808.txt", URI). Passed
+%?- uri_parse("http://www.ietf.org/rfc/rfc2396.txt", URI). Passed
+%?- uri_parse("ldap://[2001:db8::7]/c=GB?objectClass?one", URI). Not Passed
+%?- uri_parse("mailto:John.Doe@example.com", URI). Passed
+%?- uri_parse("news:comp.infosystems.www.servers.unix", URI). Passed
+%?- uri_parse("tel:+1-816-555-1212", URI). Passed
+%?- uri_parse("telnet://192.0.2.16:80/", URI). Not Passed
+%?- uri_parse("urn:oasis:names:specification:docbook:dtd:xml:4.1.2", URI). NP
 %
 %Test aggiuntivi:
-%?- uri_parse("http://disco.unimib.it", URI).
+%?- uri_parse("http://disco.unimib.it", URI). Passed
 %?- uri_parse("http://disco.unimib.it",
-%				uri(https, _, _, _, _, _, _)).
+%				uri(https, _, _, _, _, _, _)). Passed
 %?- uri_parse("http://disco.unimib.it",
-%				uri(_, _, Host, _, _, _, _)).
+%				uri(_, _, Host, _, _, _, _)). Passed
 %?- uri_parse("d?:/", URI).
 %?- uri_parse("d#:/", URI).
