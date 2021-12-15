@@ -3,7 +3,7 @@
 % 2) (Forse) Controllo sul ".com" del dominio e che host sia valido se non è u1n ip
 % NONLOSOLVO 3) Risolvere l'is_IP con tel e fax che che ritorna 111.111.111.111 fixato temporaneamente con l'out_host, DA SISTEMARE ASSOLUTAMENTE CHE L'ANTONIOTTI MI SPARA
 % SOLVED 4)  Controllo sulle parti presenti o meno (quali sono obbligatorie etc)
-% 5) diplay/2, display/1
+% SOLVED 5) diplay/2, display/1
 % SOLVED 6) (!!!) PROBLEMA DA RISOLVERE ASSOLUTAMENTE: la stringa "https://pippo.com?query" e/o la stringa "https://pippo.com#fragment" ritornano false
 % 7) " " -> "%20"
 % SOLVED 8) Sistemare nomi predicati e nomi variabili
@@ -14,13 +14,13 @@
 % Contributors:
 % Mat. 856375 - Francesco Barbieri
 % Mat. 852255 - Federico Bartsch
-% Mat.  - Alessandro Moscardo
+% Mat. 856177 - Alessandro Moscardo
 
 uri_parse(URIString, URI) :- 
-	% Trasformazione della stringa a una lista di codici
+	% Trasformazione da stringa a una lista di codici
 	string_to_list(URIString, URICodeList),
 
-	% Trasformazione della lista di codici alla lista di caratteri
+	% Trasformazione da lista di codici a lista di caratteri
     code_list_to_atom_list(URICodeList, URIList),
     
 	% Controllo sulla presenza dei :, obbligatori per qualsiasi tipo di URI,
@@ -36,7 +36,7 @@ uri_parse(URIString, URI) :-
 	authority_presence(String0, BooleanAuthority),
 
 	% Riconoscimento di evenutali scheme speciali, che necessitano di azioni
-	% e/o controlli differenti tramite BooleanSpecial scheme che avrà i
+	% e/o controlli differenti tramite BooleanSpecialScheme che avrà i
 	% seguenti valori:
 	% Scheme 	|	BooleanSpeacialScheme
 	% Default	|	0
@@ -59,7 +59,11 @@ uri_parse(URIString, URI) :-
 	% - "https://domain.com"
 	% - "https://domain.com?query"
 	% - "https://domain.com#fragment"
-	
+	% In un primo approccio al problema il nostro codice riconosceva
+	% l'authority tramite lo / (e se non presente lo aggiungeva per poi
+	% rimuoverlo), ma questo non permetteva il riconoscimento delle
+	% URI elencate sopra, ritornava false
+
 	% Riconoscimento della presenza del fragment, se presente
 	% BooleanFragment = 1, altrimenti 0
     fragment_presence(String0, BooleanFragment),
@@ -74,7 +78,8 @@ uri_parse(URIString, URI) :-
 	
 	% Predicato che splitta in corrispondenza del primo ? se
 	% BooleanQuery è pari a 1
-	split_query(String1, ?, String2, Query, BooleanQuery, BooleanSpecialScheme),
+	split_query(String1, ?, String2, Query, BooleanQuery,
+			BooleanSpecialScheme),
 
 	% Rimozione dei due slash '//' dell'authority se quest'ultima
 	% è presente (BooleanAuthority = 1)
@@ -123,7 +128,13 @@ uri_parse(URIString, URI) :-
     out_Path(Path, PathOut, BooleanSpecialScheme),
 
 	% Output delle componenti dell'URI
-	URI = uri(SchemeOut, UserinfoOut, HostOut, PortaOut, PathOut, QueryOut, FragmentOut).
+	URI = uri(SchemeOut,
+			UserinfoOut,
+			HostOut,
+			PortaOut,
+			PathOut,
+			QueryOut,
+			FragmentOut).
 
 uri(_, _, _, _, _, _, _).
 
@@ -404,7 +415,10 @@ out_host([], HostOut) :-
 	!.
 
 out_host(Host, HostOut) :- 
-	Host = ['1', '1', '1', '.', '1', '1', '1', '.', '1', '1', '1', '.', '1', '1', '1'],
+	Host = ['1', '1', '1',
+			'.', '1', '1', '1',
+			'.', '1', '1', '1',
+			'.', '1', '1', '1'],
 	HostOut = [],
 	!.
 
@@ -462,6 +476,56 @@ out_Path(Path, PathOut, BooleanSpecialScheme) :-
 out_Path([], PathOut, _) :-
     PathOut = []. 
 
+% Predicati per la stampa a video e su file
+
+uri_display(URI) :-
+	URI =.. [_, Scheme, Userinfo, Host, Port, Path, Query, Fragment | _],
+	write('Scheme: '),
+	write(Scheme),
+	write('\n'),
+	write('Userinfo: '),
+	write(Userinfo),
+	write('\n'),
+	write('Host: '),
+	write(Host),
+	write('\n'),
+	write('Port: '),
+	write(Port),
+	write('\n'),
+	write('Path: '),
+	write(Path),
+	write('\n'),
+	write('Query: '),
+	write(Query),
+	write('\n'),
+	write('Fragment: '),
+	write(Fragment), !.
+
+uri_display(URI, Filename) :-
+	URI =.. [_, Scheme, Userinfo, Host, Port, Path, Query, Fragment | _],
+	open(Filename, write, Stream),
+	write(Stream, 'Scheme: '),
+	write(Stream, Scheme),
+	write(Stream, '\n'),
+	write(Stream, 'Userinfo: '),
+	write(Stream, Userinfo),
+	write(Stream, '\n'),
+	write(Stream, 'Host: '),
+	write(Stream, Host),
+	write(Stream, '\n'),
+	write(Stream, 'Port: '),
+	write(Stream, Port),
+	write(Stream, '\n'),
+	write(Stream, 'Path: '),
+	write(Stream, Path),
+	write(Stream, '\n'),
+	write(Stream, 'Query: '),
+	write(Stream, Query),
+	write(Stream, '\n'),
+	write(Stream, 'Fragment: '),
+	write(Stream, Fragment),
+	close(Stream).
+
 % Fuffa
 
 code_list_to_atom_list([], []) :- !.
@@ -471,8 +535,8 @@ code_list_to_atom_list([X | Xs], [Y | Ys]) :-
 	code_list_to_atom_list(Xs, Ys).
 
 verifica_identificatori(X) :- 
-	length(X, 1),  %True se la lista X contiene 1 elemento
-	nth0(0, X, Y), %True se l'elemento Y alla posizione 0 della lista X è uno sei deguenti caratteri
+	length(X, 1),
+	nth0(0, X, Y), 
 	Y \= '/', 
 	Y \= '?', 
 	Y \= '#', 
@@ -489,8 +553,8 @@ verifica_identificatori([X | Xs]) :-
 	verifica_identificatori(Xs).
 
 verifica_identificatori_path(X) :- 
-	length(X, 1),  %True se la lista X contiene 1 elemento
-	nth0(0, X, Y), %True se l'elemento Y alla posizione 0 della lista X è uno sei deguenti caratteri
+	length(X, 1),
+	nth0(0, X, Y),
 	Y \= '?', 
 	Y \= '#', 
 	Y \= '@', 
@@ -534,8 +598,6 @@ remove_slash(X, Out, Boolean) :-
 remove_slash(X, Out, Boolean) :-
 	Boolean == 0,
 	Out = X.
-
-%================
 
 isDigit([C | Cs]) :-
 	digit(C),
