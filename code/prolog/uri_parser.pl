@@ -501,9 +501,8 @@ uri_display(URI) :-
 	write('Fragment: '),
 	write(Fragment), !.
 
-uri_display(URI, Filename) :-
+uri_display(URI, Stream) :-
 	URI =.. [_, Scheme, Userinfo, Host, Port, Path, Query, Fragment | _],
-	open(Filename, write, Stream),
 	write(Stream, 'Scheme: '),
 	write(Stream, Scheme),
 	write(Stream, '\n'),
