@@ -1,18 +1,38 @@
-(defun uri-parser (str)
-  (string-to-list (str)));non funziona per qualche fottuto motivo
+(setq porta-default 80)
+(defparameter *identificatore* "/?#@:")
 
-(defun string-to-list (str)
-  (coerce str 'list))  ;lista non leggibile "#\h #\t #\t #\p" 
-
-(defun verifica-identificatori (str) ;l'idea c'è, male l'esecuzione
-  (if (not (eq (car str (or ("#\/") ("#\?") ("#\#") ("#\@") ("#\:"))
-    (t verifica-identificatori (cdr srt)))))))
-        
 (defun split(l)
-  (cond 
-        ((eq (car l) 'h) (rest l))
-        (t (split(rest l)))
-  )
-)
+  (values
+    (cond 
+      ((eq (car l) 'h) (rest l))
+      (t (add (car l) ()) (split(rest l))))))
 
+(defun add (element list)
+  (cons element list))
+
+(defun findPos(lista c)
+  (defvar pos 0)
+  (loop for i in lista
+      if(eq i c)
+        do(return pos)
+      else
+        do(setq pos (+ 1 pos))))
+
+(defun split (list count)
+  (values (subseq list 0 count) (nthcdr count list)))
+
+(defun identificatori (lista *identificatore*)
+  (coerce *identificatore* 'list)
+  (loop for i in lista ;loop infame per te solo lame
+    if (not (member i last(identificatori)))
+      do (return first(identificatori)
+    else  
+      do (print "Sintassi non corretta"))))
  
+(defun uri-parser(stringa)
+  (setq pos 0) 
+  (setq posizione 0)
+  (setq uriList (coerce stringa 'list))
+  (setq posizione (findPos uriList #\:))
+  (split uriList posizione)
+)
