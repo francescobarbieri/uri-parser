@@ -24,15 +24,44 @@
 (defun split (list count)
            (values (subseq list 0 count) (nthcdr count list)))
 
- 
+ (defun invertiLista(l)
+    (cond
+        ((null l) '())
+        (T (append (invertiLista (cdr l)) (list (car l))))))
+
+(defun presenzaAuthority(lista)
+  (cond((null lista) '())
+       ((and (eq (nth 1 lista) #\/) (eq (nth 2 lista) #\/)) 1)
+       (t 0)
+  )
+)
+
+(defun presenzaUserinfo(lista)
+  (cond((null lista) '())
+       ((member #\@ lista)1)
+       (t 0)
+  )
+)
+
+
+
 (defun uri-parser(stringa)
     (setq pos 0) 
     (setq posizione 0)
     (setq uriList (coerce stringa 'list))
     (setq posizione (findPos uriList #\:))
-    (split uriList posizione)
-   
-   
+    (setq scheme (split uriList posizione))
+    (setq resto (set-difference uriList scheme))
+    (setq resto(invertiLista resto))
+    (setq presenzaAuthority (presenzaAuthority resto))
+    (presenzaUserinfo resto)
+    (setq pos@ (findPos resto #\@))
+    (print resto)
+    (nth 13 uriList)
+    
 )
+
+
+
 
 
