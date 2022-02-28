@@ -29,6 +29,47 @@ fragment    ::= <chars>+
 scheme-syntax       ::= <special-scheme - see below>
 ```
 
+### Special Scheme
+
+Here we define some special syntaxes to take into consideration. The syntax is specified for each desired pattern. Note that the "normal" syntax must be used whenever the scheme is not among those recognized as special: `mailto`, `news`, `tel`, `fax` and `zos`.
+
+#### Scheme 'mailto'
+
+In this case only the `userinfo` and `host` fields of the structure must be filled.
+
+```
+scheme-syntax   ::= [userinfo ['@' host]]
+```
+
+#### Scheme 'news'
+
+In this case only the `host` field must be filled.
+
+```
+scheme-syntax   ::= [host]
+```
+
+#### Scheme 'tel' and 'fax'
+
+For the sake of simplicity, no checks on the consistency of the identifier associated with userinfo were considered, apart from compliance with the specific syntactic rules.
+
+```
+scheme-syntax   ::= [userinfo]
+```
+
+#### Scheme 'zos'
+
+The zos scheme describes the names of data-sets on IBM mainframes. In this case the special syntax is a variation of the production of `URI1`, with the `path` field having a different structure which is checked differently. The other fields (`userinfo`, `host`, `port`, `query`, `fragment`) are to be recognized normally as in the production of `URI1`.
+
+```
+path        ::= <id44> ['(' <id8> ')']
+id44        ::= (<alphanum> | '.')+
+id8         ::= (<alphanum>)+
+alphanum    ::= <alphabetic characters and digits>
+```
+
+The length of `id44` is at most 44 and that of `id8` is at most 8. Furthermore, `id44` and `id8` must start with an alphabetic character; `id44` cannot end with a '.'
+
 ## Prolog
 
 ## Lisp
