@@ -78,11 +78,19 @@ There is a `uri_parse/2` predicate in prolog:
 uri_parse(URIString, URI).
 ```
 
-which is true if URIString can be unbundled into the compound term
+which is true if URIString can be unbundled into the compound term:
 
-URI = uri (Scheme, Userinfo, Host, Port, Path, Query, Fragment).
+```Prolog
+URI = uri(Scheme, Userinfo, Host, Port, Path, Query, Fragment).
+```
 
-The uri_display / 1 and uri_display / 2 predicates have also been implemented which print a URI in text format and on file respectively.
+The `uri_display/1` and `uri_display/2` predicates have also been implemented which print a URI in text format and on file respectively.  
+Some examples:
+
+```Prolog
+?- uri_parse("http://facebook.com", URI).
+URI = uri(http, [], 'facebook.com', 80, [], [], [])
+```
 
 The program is also able to correctly answer queries in which the terms are partially instantiated, such as
 
