@@ -88,10 +88,25 @@ The `uri_display/1` and `uri_display/2` predicates have also been implemented wh
 Some examples:
 
 ```Prolog
-?- uri_parse("http://facebook.com", URI).
+uri_parse("http://facebook.com", URI).
 URI = uri(http, [], 'facebook.com', 80, [], [], [])
 ```
 
-The program is also able to correctly answer queries in which the terms are partially instantiated, such as
+```Prolog
+uri_parse("sftp://anon@facebook.com/foo/uri.pl", URI).
+URI = uri(sftp, anon, 'facebook.com', 80, 'foo/uri.pl', [], [])
+```
+
+The program is also able to correctly answer queries in which the terms are partially instantiated, such as:
+
+```Prolog
+uri_parse("http://facebook.com", uri(https, _, _, _, _, _, _)).
+No
+```
+
+```Prolog
+uri_parse("http://facebook.com", uri(_, _, Host, _, _, _, _)).
+Host = 'facebook.com'
+```
 
 ## Lisp
