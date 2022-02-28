@@ -70,6 +70,21 @@ alphanum    ::= <alphabetic characters and digits>
 
 The length of `id44` is at most 44 and that of `id8` is at most 8. Furthermore, `id44` and `id8` must start with an alphabetic character; `id44` cannot end with a '.'
 
+#### Notes
+
+Many fields are optional. `Port` has '80' by default and must be rendered as a number.
+Starting from the given grammar, an URI can therefore be divided into the following components:
+
+1. Scheme
+2. Userinfo
+3. Host
+4. Port
+5. Path
+6. Query
+7. Fragment
+
+Note that the grammar admits URIs containing only the scheme (and the default `port` '80')
+
 ## Prolog
 
 There is a `uri_parse/2` predicate in prolog:
@@ -111,7 +126,7 @@ Host = 'facebook.com'
 
 ## Lisp
 
-In Common Lisp a 'uri-parse' function has been implemented which receives a string as input and returns a "structure" with at least the 7 fields mentioned above. This structure is represented with a 'defstruct'.  
+In Common Lisp a `uri-parse` function has been implemented which receives a string as input and returns a "structure" with at least the 7 fields mentioned above. This structure is represented with a `defstruct`.  
 Furthermore, specific functions have been implemented to access the various components of the structure, in particular they are:
 
 ```
@@ -150,7 +165,7 @@ NIL
 
 ```Lisp
 (uri-display disco))
-Scheme:     http
+Scheme:     "http"
 Userinfo:   NIL
 Host:       "facebook.com"
 Port:       80
