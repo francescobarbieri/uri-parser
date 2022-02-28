@@ -72,4 +72,18 @@ The length of `id44` is at most 44 and that of `id8` is at most 8. Furthermore, 
 
 ## Prolog
 
+There is a `uri_parse/2` predicate in prolog:
+
+```Prolog
+uri_parse(URIString, URI).
+```
+
+which is true if URIString can be unbundled into the compound term
+
+URI = uri (Scheme, Userinfo, Host, Port, Path, Query, Fragment).
+
+The uri_display / 1 and uri_display / 2 predicates have also been implemented which print a URI in text format and on file respectively.
+
+The program is also able to correctly answer queries in which the terms are partially instantiated, such as
+
 ## Lisp
