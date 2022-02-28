@@ -101,7 +101,7 @@ The program is also able to correctly answer queries in which the terms are part
 
 ```Prolog
 uri_parse("http://facebook.com", uri(https, _, _, _, _, _, _)).
-No
+false
 ```
 
 ```Prolog
@@ -110,3 +110,51 @@ Host = 'facebook.com'
 ```
 
 ## Lisp
+
+In Common Lisp a 'uri-parse' function has been implemented which receives a string as input and returns a "structure" with at least the 7 fields mentioned above. This structure is represented with a 'defstruct'.  
+Furthermore, specific functions have been implemented to access the various components of the structure, in particular they are:
+
+```
+uri-parse:          string → uri-structure
+uri-scheme:         uri-structure → string
+uri-userinfo:       uri-structure → string
+uri-host:           uri-structure → string
+uri-port:           uri-structure → integer
+uri-path:           uri-structure → string
+uri-query:          uri-structure → string
+uri-fragment:       uri-structure → string
+uri-display:        uri-structure &optional stream → T
+```
+
+Examples:
+
+```Lisp
+(defparameter uri (uri-parse "http://facebook.com"))
+URI
+```
+
+```Lisp
+(uri-scheme uri))
+"http"
+```
+
+```Lisp
+(uri-host disco))
+"facebook.com"
+```
+
+```Lisp
+(uri-query disco))
+NIL
+```
+
+```Lisp
+(uri-display disco))
+Scheme:     http
+Userinfo:   NIL
+Host:       "facebook.com"
+Port:       80
+Path:       NIL
+Query:      NIL
+Fragment:   NIL
+```
