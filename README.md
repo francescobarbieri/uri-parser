@@ -154,17 +154,17 @@ URI
 ```
 
 ```Lisp
-(uri-host disco))
+(uri-host uri))
 "facebook.com"
 ```
 
 ```Lisp
-(uri-query disco))
+(uri-query uri))
 NIL
 ```
 
 ```Lisp
-(uri-display disco))
+(uri-display uri))
 Scheme:     "http"
 Userinfo:   NIL
 Host:       "facebook.com"

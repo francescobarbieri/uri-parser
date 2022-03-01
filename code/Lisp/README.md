@@ -1,48 +1,16 @@
-Contributors:
-856375 - Barbieri Francesco
-852255 - Bartsch Federico
-856177 - Moscardo Alessandro
+# Lisp Uri Parser
 
-- Cosa fa uri-parse.lisp
-    Il programma è formato da diverse funzioni che controllano 
-    la presenza e la validità dei campi che formano un uri: 
-    - Scheme
-    - Userinfo
-    - Host 
-    - Port 
-    - Path
-    - Query 
-    - Fragment
+## How parsing happens
 
-- Come avviene il parsing?
-    Il controllo avviene da sinistra a destra, ciò significa che i campi 
-    vengono controllati nell'ordine sopra mostrato.
+Parsing occurs in sequence. Scheme, userinfo, host, port, path, query and fragment are divided according to the characters that distinguish them: ':', '@', '/', '?', '#' Specifically, at each step the lisp program splits the list in the presence of the above characters into two parts: one part on the left and one part on the right.
+Then the characters that make up the left part are checked according to the specification. If they are valid, the next step (function) is identified based on the specific characters, the left part is assigned to its field and the right part is passed to the next function which contains all the rest of the uri.
 
-    La funzione split è molto importante, in quanto si occupa di separare la
-    parte della lista di nostro interesse dal resto della lista.
+Example:  
+Let's suppose we have this uri:  
+`"https://host"`
+The first step will be to divide the scheme with the ':' char:  
+`"https:"` - `"//host"`
+Given the presence of '//' it will proceed to control the authority. Since the authority composed of `userinfo`, `host` and `port` the first function called will be `check-userinfo` that will set the `userinfo` field as `NIL`. Only after this the function `cehck-host` will be called to divide and set the host field. All the other fields will be set to `NIL` since the list is empty after the host.
 
-    La logica del programma funziona in questo modo:
-    Innanzitutto viene controllata la presenza dello Scheme, 
-    se lo scheme è di tipo speciale (tel, fax, mailto, news) vengono chiamate
-    le  rispettive funzione per gestirli.
-
-    Se invece lo Scheme è di tipo Standard viene controllata la presenza di 
-    Authority, la quale è fondamentale per capire
-    come proseguire con il parsing, infatti se authority non è presente viene
-    chiamata la funzione authNotPresent, la quale si occupa di fare i dovuti 
-    controlli e chiamare le funzioni per gestire questo tipo di uri.
-
-    Proseguendo, vengono controllati Path, Query e Fragment se presenti, 
-    tramite le funzioni check-path, check-query, check-fragment.
-
-    Ad ognuna di queste funzioni sopra citate viene passata la lista Final 
-    che viene costruita man mano che il programma va avanti.
-
-    Final parte infatti vuota, e ad ogni funzione vengono appese le dovute
-    parti dell'uri e i NIL, nel caso in cui esse non siano presenti.
-
-    La funzione exit viene richiamata per ultima e si occupa di costruire la
-    struttura dell'uri, a partire dalla lista final sopra citata.
-
-    Infine vi è la funzione uri-display che si occupa di visualizzare la 
-    struttura dell'uri.
+Chart of function called:
+![Chart of function called](scheme-uri-parser.png)
