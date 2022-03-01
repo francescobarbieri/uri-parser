@@ -1,13 +1,12 @@
-;; Lisp uri-parser 02/2022 - Linguaggi di Programmazione
 ;; Contributors:
-;; Mat. 856375 - Barbieri Francesco
-;; Mat. 852255 - Bartsch Federico
-;; Mat. 856177 - Moscardo Alessandro
+;; Barbieri Francesco
+;; Bartsch Federico
+;; Moscardo Alessandro
 
 (defstruct uri scheme userinfo host port path query fragment)
 
-;; Funzione principle che converte la stringa in lista, divide la
-;; lista con i ':' e in base alla presenza dell'authority, agisce di conseguenza
+;; Main function that converts the string into a list, divides the list
+;; with ':' and, based on the presence of the authority, acts accordingly
 (defun uri-parse (stringa)
   (let ((lista (coerce stringa 'list)))
     (if (null lista) (error "Lista vuota non e' una uri")
@@ -30,8 +29,8 @@
 				     (list-to-betterList l) final)))))
 	  (error "l'uri non ha i :"))))))
 
-;; Controlla la corretta formattazione di userinfo e i suoi caratteri.
-;; Divide la lista in userinfo e resto, che viene passata a host-check.
+;; Check the correct formatting of userinfo and its characters.
+;; Splits the list into userinfo and remainder, which is passed to host-check.
 (defun check-userinfo (lista final)
   (cond ((char-presence lista #\@) 
          (let ((l (multiple-value-bind
@@ -57,8 +56,8 @@
 	 (error "porta non valida"))
         (t (host-check lista (append '(nil) final)))))
 
-;; Alternativa a check-userinfo, in base a scheme e/o sintassi particolari
-;; agisce di conseguenza
+;; Alternative to check-userinfo, acts accordingly based on particular
+;; scheme and / or syntax
 (defun authNotPresent (lista final)
   (if (equal (car lista) #\:) (error "invalid char '::'"))
   (if (null (in-position final 1)) (error "scheme non puo' essere vuoto"))
@@ -76,9 +75,9 @@
     (check-path-zos lista (append '(nil) '(nil) '(nil)  final)))
    (t (check-path lista (append '(80) '(nil) '(nil) final)))))
 
-;; Controlla la corretta formattazione di host e i suoi caratteri.
-;; Divide la lista in host e resti e in base al carattere seguente (:, ?, #, /)
-;; viene invocata la funzione corrispondente.
+;; Check the correct formatting of host and its characters.
+;; Divide the list into host and 'other' and based on the following
+;; character (:,?, #, /) the corresponding function is invoked.
 (defun host-check (lista final)
   (cond 
    ((equal (in-position final 2) "mailto")
@@ -129,9 +128,9 @@
 	  (exit (append '(nil) '(nil) '(nil) '(80)
 			(list-to-betterList lista) final))))))
 
-;; Controlla corretta formattazione di porta e i suoi caratteri.
-;; Divide la lista in porta e resto e in base al carattere seguente (?, #, /)
-;; viene invocata la funzione corrispondente.
+;; Check correct formatting of port and its characters.
+;; Divide the list into port and 'other' and based on the following character
+;; (?, #, /) the corresponding function is invoked.
 (defun check-port (lista final)
   (cond
    ((and (equal (in-position final 3) "zos") (char-presence lista #\/))
@@ -174,9 +173,9 @@
       (exit (append '(nil) '(nil) '(nil)
 		    (list-to-betterList lista) final)))))
 
-;; Controlla corretta formattazione di path e i suoi caratteri.
-;; Divide la lista in path e resto e in base al carattere seguente (?, #)
-;; viene invocata la funzione corrispondente.
+;; Check for correct formatting of path and its characters.
+;; Divide the list into path and 'other' and based on the following character
+;; (?, #) the corresponding function is invoked.
 (defun check-path (lista final)
   (if (or (equal (car lista) #\/))
       (error "invalid path"))
@@ -201,8 +200,9 @@
 	  (exit (append '(nil) '(nil)
 			(list-to-betterList lista) final))))))
 
-;; Controlla corretta formattazione di path e i suoi caratteri.
-;; Divide la lista in path-zos e in base al carattere seguente (?, #)
+;; Check for correct formatting of path and its characters.
+;; Divide the list into path-zos and based on the following character (?, #)
+;; the corresponding function is invoked.
 (defun check-path-zos (lista final)
   (cond
    ((char-presence lista #\?)
@@ -224,9 +224,9 @@
 	  (exit (append '(nil) '(nil)
 			(list-to-betterlist lista) final ))))))
 
-;; Controlla corretta formattazione di query e i suoi caratteri.
-;; Divide la lista in query e resto e in base al carattere seguente (#)
-;; viene invocata la funzione corrispondente.
+;; Check for correct query formatting and its characters.
+;; Divide the list into query and 'other' and based on the
+;; following character (#) the corresponding function is invoked.
 (defun check-query (lista final)
   (cond
    ((char-presence lista #\#)
@@ -241,29 +241,29 @@
 			    (append '(nil)
 				    (list-to-betterList lista) final))))))
 
-;; Controlla corretta formattazione di fragment.
+;; Check for correct formatting of fragment.
 (defun check-fragment (lista final)
   (cond
    ((null lista)
     (error "fragment troppo corto"))
    (t (exit (append (list-to-betterList lista) final)))))
 
-;; Viene invocata nel caso di scheme = tel/fax.
-;; Controlla correttezza formattazione di questo special scheme.
+;; It is invoked in the case of scheme = tel / fax.
+;; Check correct formatting of this special scheme.
 (defun scheme-telfax (lista final)
   (if (is-userinfo lista)
       (exit (append '(nil) '(nil) '(nil) '(80) '(nil)
 		    (list-to-betterList lista) final))))
 
-;; Viene invocata nel caso di scheme = news.
-;; Controlla correttezza formattazione di questo special scheme.
+;; It is invoked in the case of scheme = news.
+;; Check correct formatting of this special scheme.
 (defun scheme-news (lista final)
   (if (identificators-presence lista) 
       (exit (append '(nil) '(nil) '(nil) '(80)
 		    (list-to-betterList lista) '(nil) final))))
 
-;; Viene invocata nel caso di scheme = mailto.
-;; Controlla correttezza formattazione di questo special scheme.
+;; It is invoked in the case of scheme = mailto.
+;; Check correct formatting of this special scheme.
 (defun scheme-mailto (lista final)
   (cond 
    ((null lista) (exit (append '(nil) '(nil) '(nil) '(80) '(nil)
@@ -280,7 +280,7 @@
           (exit (append '(nil) '(nil) '(nil) '(80) '(nil)
 			(list-to-betterList lista) final ))))))
 
-;; Funzione che assegna ad ogni campo di make-uri la corretta componente dell'uri
+;; Function that assigns the correct uri component to each make-uri field
 (defun exit (final)
   (make-uri :scheme (in-position final 7)
             :userinfo (in-position final 6)
@@ -290,8 +290,8 @@
             :query (in-position final 2)
             :fragment (in-position final 1)))
 
-;; Funzione che stampa a video o su file (fornendo uno stream)
-;; la defstruct correttamente formattata
+;; Function that prints on screen or on file (providing a stream)
+;; the properly formatted defstruct
 (defun uri-display (struct &optional stream)
   (if (null stream)
       (format t " 
@@ -325,7 +325,7 @@ FRAGMENT: ~C ~a "
 #\tab (uri-port struct) #\tab #\tab (uri-path struct)
 #\tab (uri-query struct) #\tab (uri-fragment struct)))) T)
 
-;; funzioni di controllo caratteri e operazioni su liste
+;; Character control functions and operations on lists
 ;; (miscellaneous)
 (defun is-userinfo (lista)
   (cond ((null lista) t)

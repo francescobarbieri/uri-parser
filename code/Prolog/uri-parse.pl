@@ -1,103 +1,103 @@
-% Prolog Uri Parser [02/2022] - Linguaggi di Programmazione
 % Contributors:
-% Mat. 856375 - Francesco Barbieri
-% Mat. 852255 - Federico Bartsch
-% Mat. 856177 - Alessandro Moscardo
+% Francesco Barbieri
+% Federico Bartsch
+% Alessandro Moscardo
 
 uri_parse(URIString, URI) :- 
-    % Trasformazione da stringa a una lista di codici
+    % Conversion from string to a code list
     string_to_list(URIString, URICodeList),
 
-    % Trasformazione da lista di codici a lista di caratteri
+    % Conversion from code list to character list
     code_list_to_atom_list(URICodeList, URIList),
     
-    % Controllo sulla presenza dei :, obbligatori per qualsiasi tipo di URI,
-    % se non presenti l'URI e' direttamente da scartare
+    % Check on the presence of ':', mandatory for any type of URI,
+    % if not present the URI it is directly to be discarded
     member(':', URIList),
     !,
 
-    % Predicato che divide lo scheme dal resto della stringa tramite i primi :
+    % Predicate that divides the scheme from the rest of the string by first ':'
     split_list(URIList, :, Scheme, String0),
 
-    % Riconoscimento della presenza dell'authority in base allo '//' 
-    % obbligatorio. Se presente BooleanAuthority = 1, altrimenti 0
+    % Recognition of the presence of the authority based on the '//'
+    % obligatory. If present BooleanAuthority = 1, otherwise 0
     authority_presence(String0, BooleanAuthority),
 
-    % Riconoscimento di evenutali scheme speciali, che necessitano di azioni
-    % e/o controlli differenti tramite BooleanSpecialScheme che avra' i
-    % seguenti valori:
+    % Recognition of any special scheme, which require action
+    % and / or different controls via BooleanSpecialScheme which will have the
+    % following values:
     % Scheme 	|	BooleanSpecialScheme
     % Default	|	0
     % mailto	|	1
-    % news	|	2
-    % tel 	|	3
-    % fax	|	4
-    % zos	|	5
+    % news	    |	2
+    % tel 	    |	3
+    % fax	    |	4
+    % zos	    |	5
     is_special_scheme(Scheme, BooleanSpecialScheme),
 
-    % Assegnazione alle rispettive parti dell'URI in base alla
-    % tipologia di scheme
+    % Assignment to the respective parts of the URI based on the
+    % scheme type
     mailto(String0, Userinfo, Host, BooleanSpecialScheme),
     news(String0, Host, BooleanSpecialScheme),
     tel(String0, Userinfo, BooleanSpecialScheme),
     fax(String0, Userinfo, BooleanSpecialScheme),
 
-    % Riconoscimento della presenza del fragment, se presente
-    % BooleanFragment = 1, altrimenti 0
+    % Recognition of the presence of the fragment, if present
+    % BooleanFragment = 1, otherwise 0
     fragment_presence(String0, BooleanFragment),
     
-    % Riconoscimento della presenza della query, se presente
-    % BooleanQuery = 1, altrimenti 0
+    % Recognition of the presence of the query, if present
+    % BooleanFragment = 1, otherwise 0
     query_presence(String0, BooleanQuery),
 
-    % Predicato che splitta in corrispondenza del primo # se
-    % BooleanFragment e' pari a 1
+    % Predicate that splits the string at the first # if
+    % BooleanFragment is equal to 1
     split_fragment(String0, #, String1, Fragment, BooleanFragment),
     
-    % Predicato che splitta in corrispondenza del primo ? se
-    % BooleanQuery e' pari a 1
+    % Predicate that splits the string at the first ? if
+    % BooleanQuery is equal to 1
     split_query(String1, ?, String2, Query, BooleanQuery,
 		BooleanSpecialScheme),
 
-    % Rimozione dei due slash '//' dell'authority se quest'ultima
-    % e' presente (BooleanAuthority = 1)
+    % Removal of the two slashes '//' of the authority if this one
+    % is present (BooleanAuthority = 1)
     remove_slash(String2, String3, BooleanAuthority),
     remove_slash(String3, String4, BooleanAuthority),
 
-    % Predicato che splitta l'authority e il path in corrispondenza dello '/'',
-    % del '?'' o dell' '#'. Per le query che non hanno path ma una tra
-    % query e/o fragment
+
+    % Predicate splitting the authority and the path at the '/',
+    % or '?' or '#'. For queries that have no path but one between
+    % query and / or fragment
     split_authority(String4, BooleanAuthority, Authority, Path),
 
-    % Predicato che controlla e rimuove la presenza dello / obbligatorio
-    % dopo authority (se presente)
+    % Predicate that checks and removes the presence of the mandatory /
+    % after authority (if any)
 
     %remove_auth_slash(TempAuthority, BooleanAuthority, Authority),
 
-    % Analizza l'authority
-    % Predicato che riconosce la presenza della porta basandosi sui ':',
-    % BooleanPort = 1 se presente, altrimenti 0
+    % Analyze authority
+    % Predicate that recognizes the presence of the port based on the ':',
+    % BooleanPort = 1 if present, 0 otherwise
     port_presence(Authority, BooleanPort, BooleanAuthority),
 
-    % Predicato che riconosce la presenza dello userinfo basandosi su '@'
-    % BooleanUserinfo = 1 se presente, altrimenti 0
+    % Predicate that recognizes the presence of the userinfo based on '@'
+    % BooleanUserinfo = 1 if present, 0 otherwise
     userinfo_presence(Authority, BooleanUserinfo, BooleanAuthority),
     
-    % Predicato che splitta la port se presente basandosi sui ':'
+    % Predicate splitting port if present based on ':'
     split_port(Authority, :, String5, Port, BooleanPort),
 
-    % Predicato che splitta lo userinfo e la port basandosi su '@'
+    % Predicate splitting the userinfo and port based on '@'
     split_host(String5, @, Userinfo, Host, BooleanUserinfo),
 
-    % Predicato che riconosce se l'host e' un IP per eseguire il controllo
-    % su di esso. Sono ammessi N.N.N.N, NNN.NNN.NNN.NNN e forme intermedie
-    % con N digit. Inoltre NNN non puo' essere > di 255
+    % Predicate that recognizes if the host is an IP to perform the check
+    % on it. N.N.N.N, NNN.NNN.NNN.NNN and intermediate forms are allowed
+    % with N digits. Furthermore, NNN cannot be > 255
     %is_IP(Host, BooleanIp),
     
-    % Predicato che effettua il controllo sull'IP
+    % Predicate that checks the IP
     %controlloIp(Host, BooleanIp),
 
-    % Predicati per la trasformazione da List a String per l'output
+    % Predicates for conversion from List to String for the output
     out_scheme(Scheme, SchemeOut),
     out_userinfo(Userinfo, UserinfoOut, BooleanUserinfo, BooleanSpecialScheme),
     out_host(Host, HostOut, BooleanAuthority, BooleanSpecialScheme),
@@ -106,7 +106,7 @@ uri_parse(URIString, URI) :-
     out_fragment(Fragment, FragmentOut, BooleanFragment),
     out_Path(Path, PathOut, BooleanSpecialScheme),
 
-    % Output delle componenti dell'URI
+    % URI component output
     URI = uri(SchemeOut,
 	      UserinfoOut,
 	      HostOut,
@@ -117,8 +117,8 @@ uri_parse(URIString, URI) :-
 
 uri(_, _, _, _, _, _, _).
 
-% Predicati per il controllo della presenza o meno delle varie componenti
-% dell'URI
+% Predicates for checking the presence or absence of the various components
+% of the URI
 
 authority_presence(X, Y) :- 
     nth1(1, X, /),
@@ -181,7 +181,7 @@ query_presence(Query, BooleanQuery) :-
     !,
     BooleanQuery = 0.
 
-% Predicati per il riconoscimento di specialScheme o default
+% Predicates for the recognition of specialScheme or default
 
 is_special_scheme(Scheme, Boolean) :-
     Scheme = ['m','a','i','l','t','o'],
@@ -212,7 +212,7 @@ is_special_scheme(_, Boolean) :-
     Boolean = 0,
     !.
 
-% Predicati per il riconoscimento ed il controllo dell'IP
+% Predicates for the recognition and IP checking
 
 digits123([A, B, C | R], R) :-
     digit(A),
@@ -246,7 +246,7 @@ controlloIp(List, Boolean) :-
 controlloIp(_, Boolean) :-
     Boolean == 0.
 
-% Predicati per lo split delle varie componenti dell'URI
+% Predicates for splitting URI components
 
 split_authority(X, BooleanAuthority, Before, After) :-
     BooleanAuthority == 1,
@@ -279,7 +279,7 @@ split_authority(X, BooleanAuthority, Before, After) :-
     Before = [], After = X,
     !.
 
-%Operazioni sull'authority
+% Operations on authority
 
 split_port(X, Car, Before, After, BooleanPort) :-
     BooleanPort == 1,
@@ -382,7 +382,7 @@ fax(List, Out, Boolean) :-
 
 fax(_, _, _) :- !.
 
-%Out code
+% Out code
 out_porta([], _, BooleanPort) :- 
     BooleanPort == 1,
     fail.
@@ -535,7 +535,7 @@ out_Path([P | Path], PathOut, BooleanSpecialScheme) :-
 out_Path([], PathOut, _) :-
     PathOut = []. 
 
-% Predicati per la stampa a video e su file
+% Predicates for screen and file printing
 
 uri_display(URI) :-
     URI =.. [_, Scheme, Userinfo, Host, Port, Path, Query, Fragment | _],
@@ -584,7 +584,7 @@ uri_display(URI, Stream) :-
     write(Stream, Fragment),
     close(Stream).
 
-% Fuffa
+% Stuff
 is_alpha([X | _]) :-
     char_type(X, alpha), !.
 

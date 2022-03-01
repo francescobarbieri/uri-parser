@@ -1,43 +1,24 @@
-Contributors:
-856375 - Barbieri Francesco
-852255 - Bartsch Federico
-856177 - Moscardo Alessandro
+# Prolog Uri Parser
 
-- Cosa fa uri-parse.pl
-    Il programma uri-file.pl è un parser di URI sviluppato interamente
-    in Prolog.
-    Data una uri generale 'scheme://userinfo@host:port/path?query#fragment'
-    questa viene parsata e suddivisa nei suoi campi:
-        - scheme
-        - userinfo
-        - host
-        - port
-        - path
-        - query
-        - fragment
+## How parsing happens
 
-- Come avviene il parsing?
-    Il parsing avviene tramite una parte logica (di fatto un automa) che
-    controlla la presenza o meno delle varie componenti dell'uri e, in base
-    a questi controlli agisce di conseguenza.
-    
-    Il risultato del controllo
-    viene salvato in apposite variabili chiamate 'Boolean-NomeComponente'
-    che contengono 0 o 1 (0 componente non presente, 1 componente presente).
-    
-    Le variabili 'Boolean-NomeComponente' vengono richiamate all'interno dei
-    predicati che devono agire in base a delle condizioni.
+The parsing takes place first through a logical part (in fact an automaton) which checks the presence or absence of the components of the uri, saving the results obtained in special variables, called `Boolean-ComponentName`. These variables can have a value of 1 or 0 based on the presence or absence of the component in question.
 
-    Per esempio il predicato 'split_query/6' quando 'BooleanQuery' è pari a
-    1 esegue lo split della lista dove vi è l'identificatore della query
-    ('?'), altrimenti non farà niente e ritornerà query pari a lista vuota.
-    
-    Vi è infine un'ultima variabile chiamata 'Boolean-SpecialScheme' la quale
-    può assumere valori compresi tra 0 e 5 in base alla tipologia di
-    URI speciale:
-        - 0 normale
-        - 1 mailto
-        - 2 news
-        - 3 tel
-        - 4 fax
-        - 5 zos
+The `Boolean-ComponentName` variables are then called within the predicates that must act on conditions.
+
+For example the `split_query / 6` predicate when `BooleanQuery` is equal to 1 splits the list where there is the query identifier (the '?' character), otherwise it will do nothing and set `query` equal to an empty list.
+
+In order, the parser does the following given an uri:
+
+1. Check for ':'
+2. If present, split the list using ':' char, otherwise the uri is not valid (see the grammar)
+3. The presence of the `authority` is identified
+4. A possible special scheme is identified
+5. If special-schemes are present, specific predicates are called for parsing these syntaxes, otherwise skip to the next step
+6. We start to parse the list from the bottom, check for the presence of `fragment`
+7. Similarly, you check for `query`
+8. `Query` and `fragment` are split if present, and saved in variables
+9. If present it parses the `authority`, dividing it, thus isolating the `path` and the `authority`
+10. We check the presence of `port` and `userinfo` in the `authority`
+11. `Port` and `host` are split if present. As a result, `userinfo` is also obtained and saved in a variable
+12. Lists are transformed into atoms for output.
